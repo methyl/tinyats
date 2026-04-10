@@ -2,24 +2,35 @@
   "name": "tinyats",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@instantdb/react": "latest",
+    "@hello-pangea/dnd": "^18.0.1",
     "@instantdb/admin": "latest",
-    "next": "15.4.10",
+    "@instantdb/react": "latest",
+    "@tanstack/react-router": "^1",
+    "@tanstack/react-start": "^1",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "vinxi": "^0.5"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@fontsource/geist-sans": "^5.2.5",
+    "@storybook/addon-essentials": "^8",
+    "@storybook/react": "^8",
+    "@storybook/react-vite": "^8",
+    "@tailwindcss/vite": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "storybook": "^8",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
   },

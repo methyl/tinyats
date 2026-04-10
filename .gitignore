@@ -13,9 +13,12 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# vinxi / tanstack start
+/.vinxi/
+/.output/
+
+# storybook
+/storybook-static/
 
 # production
 /build

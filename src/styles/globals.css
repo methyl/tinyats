@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/600.css";
+@import "@fontsource/geist-sans/700.css";
+
+@theme inline {
+  /* Status colors */
+  --color-status-new: #2684FC;
+  --color-status-reviewed: #CF7727;
+  --color-status-first-call: #D13938;
+  --color-status-second-call: #339E68;
+  --color-status-deal: #339E68;
+  --color-status-hired: #339E68;
+  --color-status-rejected: #8E8E8F;
+
+  /* Status backgrounds (20% opacity equivalents) */
+  --color-status-new-bg: #EBF3FF;
+  --color-status-reviewed-bg: #FFF3E6;
+  --color-status-first-call-bg: #FDEAEA;
+  --color-status-second-call-bg: #E8F5EF;
+  --color-status-deal-bg: #E8F5EF;
+  --color-status-hired-bg: #E8F5EF;
+  --color-status-rejected-bg: #F5F6F5;
+
+  /* Grays */
+  --color-gray-900: #1B1B1B;
+  --color-gray-800: #292929;
+  --color-gray-600: #5B5C5D;
+  --color-gray-500: #8E8E8F;
+  --color-gray-300: #CFCFCF;
+  --color-gray-200: #E7E9E7;
+  --color-gray-100: #F5F6F5;
+  --color-gray-50: #FCFCFC;
+
+  /* Brand */
+  --color-star-gold: #D9AC00;
+  --color-star-empty: #CFCFCF;
+  --color-linkedin: #0A66C2;
+  --color-github: #24292F;
+  --color-google-meet: #00AC47;
+
+  /* Activity indicator */
+  --color-activity-hot: #D13938;
+  --color-activity-warm: #CF7727;
+  --color-activity-recent: #339E68;
+  --color-activity-normal: #339E68;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+
+  /* Font */
+  --font-sans: "Geist Sans", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--color-gray-50);
+  color: var(--color-gray-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
