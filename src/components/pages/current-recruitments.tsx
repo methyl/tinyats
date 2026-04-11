@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { db } from "@/lib/db";
+import { useWorkspace, useWorkspaceQuery } from "@/lib/workspace-context";
 import { toCandidate, type Candidate } from "../candidates/types";
 import { TopNav } from "../layout/top-nav";
 import { StatsBar } from "../layout/stats-bar";
@@ -32,9 +32,10 @@ function applyFilters(candidates: Candidate[], filters: ActiveFilters): Candidat
 export function CurrentRecruitments() {
   const [view, setView] = useState<"grid" | "list">("list");
   const [filters, setFilters] = useState<ActiveFilters>(defaultFilters);
+  const { hasEditAccess } = useWorkspace();
 
-  const { isLoading, error, data } = db.useQuery({
-    candidates: { position: {} },
+  const { isLoading, error, data } = useWorkspaceQuery({
+    candidates: { position: {}, comments: { author: {} } },
   });
 
   if (isLoading) {
@@ -53,14 +54,13 @@ export function CurrentRecruitments() {
     );
   }
 
-  const allCandidates = (data?.candidates ?? []).map(toCandidate);
+  const allCandidates = ((data as any)?.candidates ?? []).map(toCandidate);
   const candidates = applyFilters(allCandidates, filters);
 
-  const positions = [...new Set(allCandidates.map((c) => c.position).filter(Boolean))].sort();
-  const callTodayCount = allCandidates.filter((c) => c.hasCalendarEvent).length;
+  const positions = [...new Set(allCandidates.map((c: Candidate) => c.position).filter(Boolean))].sort() as string[];
+  const callTodayCount = allCandidates.filter((c: Candidate) => c.hasCalendarEvent).length;
 
-  return (
-    <CvDropZone>
+  const content = (
     <div className="min-h-screen bg-gray-800">
       <TopNav />
       <div className="m-2 bg-gray-50 rounded-2xl min-h-[calc(100vh-72px)]">
@@ -70,12 +70,16 @@ export function CurrentRecruitments() {
             Current Recruitments
           </h1>
           <div className="flex items-center gap-3">
-            <Button variant="secondary" icon={<AddPersonIcon />}>
-              Add Candidate
-            </Button>
-            <Button variant="secondary" icon={<AddIcon />}>
-              Add position
-            </Button>
+            {hasEditAccess && (
+              <>
+                <Button variant="secondary" icon={<AddPersonIcon />}>
+                  Add Candidate
+                </Button>
+                <Button variant="secondary" icon={<AddIcon />}>
+                  Add position
+                </Button>
+              </>
+            )}
             <Button variant="primary" icon={<HelpIcon className="text-white" />}>
               Need help with candidates Screening?{" "}
               <span className="font-semibold underline">Reach out</span>
@@ -104,6 +108,7 @@ export function CurrentRecruitments() {
         )}
       </div>
     </div>
-    </CvDropZone>
   );
+
+  return hasEditAccess ? <CvDropZone>{content}</CvDropZone> : content;
 }

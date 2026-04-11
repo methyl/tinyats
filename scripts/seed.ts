@@ -33,9 +33,49 @@ function daysAgo(n: number): number {
 }
 
 async function seed() {
+  const now = Date.now();
+
+  // Create org and workspace
+  const orgId = id();
+  const wsId = id();
+
+  console.log("Seeding org and workspace...");
+  await adminDb.transact([
+    adminDb.tx.organizations[orgId].update({ name: "TinyATS", createdAt: now }),
+    adminDb.tx.workspaces[wsId]
+      .update({ name: "Default", createdAt: now })
+      .link({ organization: orgId }),
+  ]);
+
+  // Create memberships for existing users
+  const { $users } = await adminDb.query({ $users: {} });
+  for (const user of $users) {
+    const membershipId = id();
+    await adminDb.transact([
+      adminDb.tx.orgMemberships[membershipId]
+        .update({ role: "owner", createdAt: now })
+        .link({ organization: orgId, user: user.id }),
+      adminDb.tx.orgAdminAccess[id()]
+        .update({ createdAt: now })
+        .link({ organization: orgId, user: user.id }),
+      adminDb.tx.workspaceAccess[id()]
+        .update({ createdAt: now })
+        .link({ orgMembership: membershipId, workspace: wsId }),
+      adminDb.tx.workspaceCommentAccess[id()]
+        .update({ createdAt: now })
+        .link({ orgMembership: membershipId, workspace: wsId }),
+      adminDb.tx.workspaceEditAccess[id()]
+        .update({ createdAt: now })
+        .link({ orgMembership: membershipId, workspace: wsId }),
+    ]);
+    console.log(`  Provisioned user ${user.email || user.id}`);
+  }
+
   console.log("Seeding positions...");
   const posTxs = POSITIONS.map((p) =>
-    adminDb.tx.positions[p.id].update({ name: p.name })
+    adminDb.tx.positions[p.id]
+      .update({ name: p.name })
+      .link({ workspace: wsId })
   );
   await adminDb.transact(posTxs);
 
@@ -61,13 +101,14 @@ async function seed() {
         dateAdded: daysAgo(days),
         hasCalendarEvent: status === "1st Call" || status === "2nd Call" ? Math.random() > 0.5 : false,
         activityLevel: randomFrom(["hot", "warm", "recent", "normal", "cold"]),
+        sortOrder: daysAgo(days),
       })
-      .link({ position: pos.id });
+      .link({ position: pos.id, workspace: wsId });
   });
 
   await adminDb.transact(candidateTxs);
 
-  console.log(`Seeded ${POSITIONS.length} positions and ${names.length} candidates.`);
+  console.log(`Seeded ${POSITIONS.length} positions and ${names.length} candidates in org/workspace.`);
 }
 
 seed().catch(console.error);
