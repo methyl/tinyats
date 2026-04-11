@@ -3,18 +3,18 @@ import type { InstantRules } from "@instantdb/react";
 const rules = {
   candidates: {
     allow: {
-      view: "true",
-      create: "true",
-      update: "true",
-      delete: "true",
+      view: "auth.id != null",
+      create: "auth.id != null",
+      update: "auth.id != null",
+      delete: "auth.id != null",
     },
   },
   positions: {
     allow: {
-      view: "true",
-      create: "true",
-      update: "true",
-      delete: "true",
+      view: "auth.id != null",
+      create: "auth.id != null",
+      update: "auth.id != null",
+      delete: "auth.id != null",
     },
   },
 } satisfies InstantRules;

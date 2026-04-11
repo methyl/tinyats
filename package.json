@@ -14,6 +14,7 @@
     "@hello-pangea/dnd": "^18.0.1",
     "@instantdb/admin": "latest",
     "@instantdb/react": "latest",
+    "@react-oauth/google": "^0.13.5",
     "@tanstack/react-router": "^1",
     "@tanstack/react-start": "^1",
     "react": "19.1.0",
