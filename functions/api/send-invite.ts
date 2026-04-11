@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!invite) {
     return jsonResponse({ error: "Invite not found" }, 404);
   }
-  if (invite.status !== "pending") {
+  if (invite.status !== "pending" && invite.status !== "sent") {
     return jsonResponse({ error: `Invite already ${invite.status}` }, 409);
   }
 

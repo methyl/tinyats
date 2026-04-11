@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/lib/workspace-context";
 import { ChevronDownIcon } from "../ui/icons";
 
@@ -11,6 +12,7 @@ export function WorkspaceSwitcher() {
     switchWorkspace,
     isOrgAdmin,
   } = useWorkspace();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -127,14 +129,21 @@ export function WorkspaceSwitcher() {
             </button>
           ))}
 
+          <div className="border-t border-gray-100 my-1" />
           {isOrgAdmin && (
-            <>
-              <div className="border-t border-gray-100 my-1" />
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 cursor-pointer">
-                + Create workspace
-              </button>
-            </>
+            <button className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 cursor-pointer">
+              + Create workspace
+            </button>
           )}
+          <button
+            onClick={() => {
+              navigate({ to: "/settings" });
+              setOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
+          >
+            Settings
+          </button>
         </div>
       )}
     </div>
