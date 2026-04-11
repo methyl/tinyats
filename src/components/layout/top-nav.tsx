@@ -1,6 +1,7 @@
 import { Badge } from "../ui/badge";
 import { SearchInput } from "../ui/search-input";
 import { WorkspaceSwitcher } from "./workspace-switcher";
+import { db } from "@/lib/db";
 
 export type TopNavTab = {
   label: string;
@@ -52,8 +53,16 @@ export function TopNav({
         </div>
       </div>
 
-      {/* Search */}
-      <SearchInput onChange={onSearch} />
+      {/* Search + Sign out */}
+      <div className="flex items-center gap-3">
+        <SearchInput onChange={onSearch} />
+        <button
+          onClick={() => db.auth.signOut()}
+          className="text-sm text-gray-500 hover:text-gray-700 transition-colors cursor-pointer whitespace-nowrap"
+        >
+          Sign out
+        </button>
+      </div>
     </nav>
   );
 }

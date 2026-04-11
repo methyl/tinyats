@@ -28,7 +28,6 @@ const rules = {
   orgAdminAccess: {
     allow: {
       view: "auth.id in data.ref('organization.orgMemberships.user.id')",
-      // Only existing org admins can create/modify admin access
       create: "auth.id in data.ref('organization.adminAccess.user.id')",
       update: "auth.id in data.ref('organization.adminAccess.user.id')",
       delete: "auth.id in data.ref('organization.adminAccess.user.id')",
@@ -53,8 +52,6 @@ const rules = {
   workspaceEditAccess: {
     allow: {
       view: "auth.id in data.ref('workspace.access.orgMembership.user.id')",
-      // Org admins can manage edit access — traverses through organization.adminAccess,
-      // a different entity type, so no self-reference issue.
       create: "auth.id in data.ref('workspace.organization.adminAccess.user.id')",
       update: "auth.id in data.ref('workspace.organization.adminAccess.user.id')",
       delete: "auth.id in data.ref('workspace.organization.adminAccess.user.id')",
