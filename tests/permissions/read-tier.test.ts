@@ -66,7 +66,7 @@ describe("read-tier user", () => {
       .debugTransact([
         adminDb.tx.comments[id()]
           .update({ body: "Unauthorized comment", createdAt: Date.now() })
-          .link({ candidate: f.candidateAId }),
+          .link({ candidate: f.candidateAId, workspace: f.wsAId }),
       ]);
     expect(result["all-checks-ok?"]).toBe(false);
   });

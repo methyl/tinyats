@@ -62,7 +62,7 @@ describe("edit-tier user", () => {
       .debugTransact([
         adminDb.tx.comments[id()]
           .update({ body: "Editor comment", createdAt: Date.now() })
-          .link({ candidate: f.candidateAId }),
+          .link({ candidate: f.candidateAId, workspace: f.wsAId }),
       ]);
     expect(result["all-checks-ok?"]).toBe(true);
   });
@@ -82,7 +82,7 @@ describe("edit-tier user", () => {
     await adminDb.transact([
       adminDb.tx.comments[otherCommentId]
         .update({ body: "Someone else's comment", createdAt: Date.now() })
-        .link({ candidate: f.candidateAId, author: commentUser.id }),
+        .link({ candidate: f.candidateAId, author: commentUser.id, workspace: f.wsAId }),
     ]);
 
     // editUser can't update (only author can update)

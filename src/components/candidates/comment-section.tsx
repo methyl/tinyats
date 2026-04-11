@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { id } from "@instantdb/react";
 import { db } from "@/lib/db";
+import { useWorkspace } from "@/lib/workspace-context";
 
 type Comment = {
   id: string;
@@ -35,6 +36,7 @@ export function CommentSection({
   hasCommentAccess,
   hasEditAccess,
 }: CommentSectionProps) {
+  const { currentWorkspace } = useWorkspace();
   const [newComment, setNewComment] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
@@ -43,11 +45,11 @@ export function CommentSection({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !currentWorkspace) return;
     db.transact(
       db.tx.comments[id()]
         .update({ body: newComment.trim(), createdAt: Date.now() })
-        .link({ candidate: candidateId, author: currentUserId })
+        .link({ candidate: candidateId, author: currentUserId, workspace: currentWorkspace.id })
     );
     setNewComment("");
   };

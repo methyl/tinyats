@@ -67,10 +67,10 @@ const rules = {
   },
   comments: {
     allow: {
-      view: "auth.id in data.ref('candidate.workspace.access.orgMembership.user.id')",
-      create: "auth.id in data.ref('candidate.workspace.commenters.orgMembership.user.id')",
+      view: "auth.id in data.ref('workspace.access.orgMembership.user.id')",
+      create: "auth.id in data.ref('workspace.commenters.orgMembership.user.id')",
       update: "auth.id in data.ref('author.id')",
-      delete: "auth.id in data.ref('author.id') || auth.id in data.ref('candidate.workspace.editors.orgMembership.user.id')",
+      delete: "auth.id in data.ref('author.id') || auth.id in data.ref('workspace.editors.orgMembership.user.id')",
     },
   },
   invites: {

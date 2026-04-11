@@ -182,7 +182,7 @@ async function createTestFixture(): Promise<TestFixture> {
     // Comment on wsA candidate by editUser
     adminDb.tx.comments[commentId]
       .update({ body: "Great candidate!", createdAt: now })
-      .link({ candidate: candidateAId, author: editUser.id }),
+      .link({ candidate: candidateAId, author: editUser.id, workspace: wsAId }),
   ]);
 
   return {

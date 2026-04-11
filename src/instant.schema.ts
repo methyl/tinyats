@@ -225,6 +225,18 @@ const _schema = i.schema({
       },
     },
     // --- Comment links ---
+    commentWorkspace: {
+      forward: {
+        on: "comments",
+        has: "one",
+        label: "workspace",
+      },
+      reverse: {
+        on: "workspaces",
+        has: "many",
+        label: "comments",
+      },
+    },
     commentCandidate: {
       forward: {
         on: "comments",

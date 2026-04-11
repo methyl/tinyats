@@ -51,7 +51,7 @@ describe("comment-tier user", () => {
       .debugTransact([
         adminDb.tx.comments[id()]
           .update({ body: "Nice candidate!", createdAt: Date.now() })
-          .link({ candidate: f.candidateAId }),
+          .link({ candidate: f.candidateAId, workspace: f.wsAId }),
       ]);
     expect(result["all-checks-ok?"]).toBe(true);
   });
