@@ -102,7 +102,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!jsonMatch) {
       return jsonResponse({
         error: "Could not extract candidate data from CV.",
-        debug: { markdownLength: markdownContent.length, aiResponse: raw },
+        debug: { markdownLength: markdownContent.length, markdown: truncated, aiResponse: raw },
       }, 422);
     }
 
