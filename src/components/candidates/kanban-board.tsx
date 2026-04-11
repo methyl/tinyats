@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useMemo } from "react";
 import {
   DragDropContext,
   Droppable,
   Draggable,
   type DropResult,
 } from "@hello-pangea/dnd";
+import { db } from "@/lib/db";
 import { KanbanCard } from "./kanban-card";
 import { type CandidateStatus } from "../ui/status-badge";
 import { type Candidate } from "./types";
@@ -48,14 +49,26 @@ function groupByStatus(candidates: Candidate[]): ColumnMap {
   for (const c of candidates) {
     map[c.status].push(c);
   }
+  // Sort each column by sortOrder
+  for (const status of ALL_STATUSES) {
+    map[status].sort((a, b) => a.sortOrder - b.sortOrder);
+  }
   return map;
 }
 
-export function KanbanBoard({ candidates }: KanbanBoardProps) {
-  const [columns, setColumns] = useState<ColumnMap>(() => groupByStatus(candidates));
+// Compute a sortOrder value between two neighbors
+function orderBetween(before: number | undefined, after: number | undefined): number {
+  if (before == null && after == null) return 1000;
+  if (before == null) return after! - 1000;
+  if (after == null) return before + 1000;
+  return (before + after) / 2;
+}
 
-  const onDragEnd = useCallback((result: DropResult) => {
-    const { source, destination } = result;
+export function KanbanBoard({ candidates }: KanbanBoardProps) {
+  const columns = useMemo(() => groupByStatus(candidates), [candidates]);
+
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination, draggableId } = result;
     if (!destination) return;
 
     const srcCol = source.droppableId as CandidateStatus;
@@ -63,21 +76,25 @@ export function KanbanBoard({ candidates }: KanbanBoardProps) {
 
     if (srcCol === destCol && source.index === destination.index) return;
 
-    setColumns((prev) => {
-      const srcItems = [...prev[srcCol]];
-      const [moved] = srcItems.splice(source.index, 1);
-      moved.status = destCol;
+    // Build the destination column's ordered list (excluding the dragged card)
+    const destItems = columns[destCol].filter((c) => c.id !== draggableId);
 
-      if (srcCol === destCol) {
-        srcItems.splice(destination.index, 0, moved);
-        return { ...prev, [srcCol]: srcItems };
-      }
+    const destIndex = srcCol === destCol
+      ? // Same column: adjust index since we removed the item
+        destination.index
+      : destination.index;
 
-      const destItems = [...prev[destCol]];
-      destItems.splice(destination.index, 0, moved);
-      return { ...prev, [srcCol]: srcItems, [destCol]: destItems };
-    });
-  }, []);
+    const before = destItems[destIndex - 1]?.sortOrder;
+    const after = destItems[destIndex]?.sortOrder;
+    const newOrder = orderBetween(before, after);
+
+    const update: Record<string, any> = { sortOrder: newOrder };
+    if (srcCol !== destCol) {
+      update.status = destCol;
+    }
+
+    db.transact(db.tx.candidates[draggableId].update(update));
+  };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { CurrentRecruitments } from "./current-recruitments";
-import { mockCandidates, mockKanbanCandidates } from "../candidates/mock-data";
 
 const meta: Meta<typeof CurrentRecruitments> = {
   title: "Pages/CurrentRecruitments",
@@ -13,10 +12,6 @@ const meta: Meta<typeof CurrentRecruitments> = {
 export default meta;
 type Story = StoryObj<typeof CurrentRecruitments>;
 
-export const ListView: Story = {
-  args: { candidates: mockCandidates, kanbanCandidates: mockKanbanCandidates },
-};
-
-export const KanbanView: Story = {
-  args: { candidates: mockCandidates, kanbanCandidates: mockKanbanCandidates },
-};
+// Note: This story requires VITE_INSTANT_APP_ID to be set.
+// In Storybook, it will show the loading/error state if not connected.
+export const Default: Story = {};

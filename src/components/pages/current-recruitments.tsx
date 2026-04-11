@@ -1,20 +1,62 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { db } from "@/lib/db";
+import { toCandidate, type Candidate } from "../candidates/types";
 import { TopNav } from "../layout/top-nav";
 import { StatsBar } from "../layout/stats-bar";
-import { Toolbar } from "../layout/toolbar";
+import { Toolbar, defaultFilters, type ActiveFilters } from "../layout/toolbar";
 import { CandidateTable } from "../candidates/candidate-table";
 import { KanbanBoard } from "../candidates/kanban-board";
 import { Button } from "../ui/button";
 import { AddPersonIcon, AddIcon, HelpIcon } from "../ui/icons";
-import { type Candidate } from "../candidates/types";
 
-export type CurrentRecruitmentsProps = {
-  candidates: Candidate[];
-  kanbanCandidates?: Candidate[];
-};
+function applyFilters(candidates: Candidate[], filters: ActiveFilters): Candidate[] {
+  let result = candidates;
 
-export function CurrentRecruitments({ candidates, kanbanCandidates }: CurrentRecruitmentsProps) {
+  if (filters.position) {
+    result = result.filter((c) => c.position === filters.position);
+  }
+  if (filters.new) {
+    result = result.filter((c) => c.status === "New");
+  }
+  if (filters.callToday) {
+    result = result.filter((c) => c.hasCalendarEvent);
+  }
+  if (filters.stars) {
+    result = result.filter((c) => c.rating >= 4);
+  }
+
+  return result;
+}
+
+export function CurrentRecruitments() {
   const [view, setView] = useState<"grid" | "list">("list");
+  const [filters, setFilters] = useState<ActiveFilters>(defaultFilters);
+
+  const { isLoading, error, data } = db.useQuery({
+    candidates: { position: {} },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-800 flex items-center justify-center">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-800 flex items-center justify-center">
+        <div className="text-red-400 text-lg">Error: {error.message}</div>
+      </div>
+    );
+  }
+
+  const allCandidates = (data?.candidates ?? []).map(toCandidate);
+  const candidates = applyFilters(allCandidates, filters);
+
+  const positions = [...new Set(allCandidates.map((c) => c.position).filter(Boolean))].sort();
+  const callTodayCount = allCandidates.filter((c) => c.hasCalendarEvent).length;
 
   return (
     <div className="min-h-screen bg-gray-800">
@@ -43,13 +85,20 @@ export function CurrentRecruitments({ candidates, kanbanCandidates }: CurrentRec
         <StatsBar />
 
         {/* Toolbar */}
-        <Toolbar view={view} onViewChange={setView} />
+        <Toolbar
+          view={view}
+          onViewChange={setView}
+          filters={filters}
+          onFiltersChange={setFilters}
+          callTodayCount={callTodayCount}
+          positions={positions}
+        />
 
         {/* Content */}
         {view === "list" ? (
           <CandidateTable candidates={candidates} />
         ) : (
-          <KanbanBoard candidates={kanbanCandidates ?? candidates} />
+          <KanbanBoard candidates={candidates} />
         )}
       </div>
     </div>

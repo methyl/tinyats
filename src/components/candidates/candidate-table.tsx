@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { db } from "@/lib/db";
 import { Checkbox } from "../ui/checkbox";
 import { StatusBadge } from "../ui/status-badge";
 import { StarRating } from "../ui/star-rating";
@@ -157,7 +158,13 @@ export function CandidateTable({ candidates }: CandidateTableProps) {
 
               {/* Rating */}
               <td className="px-4 py-5">
-                <StarRating rating={candidate.rating} size="md" />
+                <StarRating
+                  rating={candidate.rating}
+                  size="md"
+                  onChange={(rating) => {
+                    db.transact(db.tx.candidates[candidate.id].update({ rating }));
+                  }}
+                />
               </td>
 
               {/* Links */}

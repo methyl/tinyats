@@ -1,6 +1,10 @@
 import { type Candidate } from "./types";
 
-export const mockCandidates: Candidate[] = [
+function withSortOrder(candidates: Omit<Candidate, "sortOrder">[]): Candidate[] {
+  return candidates.map((c, i) => ({ ...c, sortOrder: i * 1000 }));
+}
+
+export const mockCandidates: Candidate[] = withSortOrder([
   {
     id: "1",
     name: "Name Surname",
@@ -119,10 +123,10 @@ export const mockCandidates: Candidate[] = [
     dateAdded: "Monday",
     activityLevel: "normal",
   },
-];
+]);
 
 // Extended data for kanban view — multiple cards per column
-export const mockKanbanCandidates: Candidate[] = [
+export const mockKanbanCandidates: Candidate[] = withSortOrder([
   // New
   {
     id: "k1",
@@ -380,4 +384,4 @@ export const mockKanbanCandidates: Candidate[] = [
     dateAdded: "2 min ago",
     activityLevel: "recent",
   },
-];
+]);

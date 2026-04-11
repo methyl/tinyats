@@ -1,5 +1,3 @@
-// Docs: https://www.instantdb.com/docs/modeling-data
-
 import { i } from "@instantdb/react";
 
 const _schema = i.schema({
@@ -13,10 +11,23 @@ const _schema = i.schema({
       imageURL: i.string().optional(),
       type: i.string().optional(),
     }),
-    todos: i.entity({
-      text: i.string(),
-      done: i.boolean(),
-      createdAt: i.number(),
+    candidates: i.entity({
+      name: i.string().indexed(),
+      status: i.string().indexed(),
+      rating: i.number().indexed(),
+      linkedin: i.string().optional(),
+      github: i.string().optional(),
+      resume: i.string().optional(),
+      phone: i.string().optional(),
+      email: i.string(),
+      note: i.string().optional(),
+      dateAdded: i.number().indexed(),
+      hasCalendarEvent: i.boolean().optional(),
+      activityLevel: i.string().optional(),
+      sortOrder: i.number().indexed(),
+    }),
+    positions: i.entity({
+      name: i.string().indexed(),
     }),
   },
   links: {
@@ -33,15 +44,21 @@ const _schema = i.schema({
         label: "linkedGuestUsers",
       },
     },
-  },
-  rooms: {
-    todos: {
-      presence: i.entity({}),
+    candidatePosition: {
+      forward: {
+        on: "candidates",
+        has: "one",
+        label: "position",
+      },
+      reverse: {
+        on: "positions",
+        has: "many",
+        label: "candidates",
+      },
     },
   },
 });
 
-// This helps TypeScript display nicer intellisense
 type _AppSchema = typeof _schema;
 interface AppSchema extends _AppSchema {}
 const schema: AppSchema = _schema;
