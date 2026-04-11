@@ -44,6 +44,13 @@ function jsonResponse(data: unknown, status = 200) {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    if (!context.env.INSTANT_APP_ID || !context.env.INSTANT_ADMIN_TOKEN) {
+      return jsonResponse(
+        { error: "Server misconfiguration: INSTANT_APP_ID and INSTANT_ADMIN_TOKEN must be set" },
+        500
+      );
+    }
+
     const formData = await context.request.formData();
     const file = formData.get("file") as File | null;
     const positionId = formData.get("positionId") as string | null;
