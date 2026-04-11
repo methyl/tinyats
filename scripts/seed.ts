@@ -55,6 +55,9 @@ async function seed() {
       adminDb.tx.orgMemberships[membershipId]
         .update({ role: "owner", createdAt: now })
         .link({ organization: orgId, user: user.id }),
+      adminDb.tx.orgAdminAccess[id()]
+        .update({ createdAt: now })
+        .link({ organization: orgId, user: user.id }),
       adminDb.tx.workspaceAccess[id()]
         .update({ createdAt: now })
         .link({ orgMembership: membershipId, workspace: wsId }),

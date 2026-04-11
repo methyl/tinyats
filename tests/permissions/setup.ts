@@ -80,6 +80,7 @@ async function createTestFixture(): Promise<TestFixture> {
   const editMembershipId = id();
   const outsideMembershipId = id();
 
+  const editAdminAccessId = id();
   const readAccessId = id();
   const commentAccessId = id();
   const commentCommentAccessId = id();
@@ -120,6 +121,11 @@ async function createTestFixture(): Promise<TestFixture> {
     adminDb.tx.orgMemberships[outsideMembershipId]
       .update({ role: "member", createdAt: now })
       .link({ organization: orgId, user: outsideUser.id }),
+
+    // Org admin access for editUser (owner role)
+    adminDb.tx.orgAdminAccess[editAdminAccessId]
+      .update({ createdAt: now })
+      .link({ organization: orgId, user: editUser.id }),
 
     // Read user: workspaceAccess on wsA only
     adminDb.tx.workspaceAccess[readAccessId]

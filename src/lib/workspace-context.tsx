@@ -62,7 +62,7 @@ export function WorkspaceProvider({
   const { isLoading, data } = db.useQuery({
     orgMemberships: {
       $: { where: { "user.id": userId } },
-      organization: { workspaces: {} },
+      organization: { workspaces: {}, adminAccess: { user: {} } },
       accessGrants: { workspace: {} },
       commentGrants: { workspace: {} },
       editGrants: { workspace: {} },
@@ -146,7 +146,12 @@ export function WorkspaceProvider({
     );
   }, [currentMembership, selectedWsId]);
 
-  const isOrgAdmin = currentOrgRole === "owner" || currentOrgRole === "admin";
+  const isOrgAdmin = useMemo(() => {
+    if (!currentMembership || !userId) return false;
+    return (currentMembership.organization?.adminAccess ?? []).some(
+      (a: any) => a.user?.id === userId
+    );
+  }, [currentMembership, userId]);
 
   const switchOrg = useCallback(
     (orgId: string) => {

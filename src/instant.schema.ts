@@ -23,6 +23,9 @@ const _schema = i.schema({
       role: i.string().indexed(),
       createdAt: i.number().indexed(),
     }),
+    orgAdminAccess: i.entity({
+      createdAt: i.number().indexed(),
+    }),
     workspaceAccess: i.entity({
       createdAt: i.number().indexed(),
     }),
@@ -124,6 +127,31 @@ const _schema = i.schema({
         on: "$users",
         has: "many",
         label: "orgMemberships",
+      },
+    },
+    // --- Org admin access (gates edit-tier management) ---
+    orgAdminAccessOrg: {
+      forward: {
+        on: "orgAdminAccess",
+        has: "one",
+        label: "organization",
+      },
+      reverse: {
+        on: "organizations",
+        has: "many",
+        label: "adminAccess",
+      },
+    },
+    orgAdminAccessUser: {
+      forward: {
+        on: "orgAdminAccess",
+        has: "one",
+        label: "user",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "orgAdminAccess",
       },
     },
     // --- Three access tier links (each tier → orgMembership + workspace) ---

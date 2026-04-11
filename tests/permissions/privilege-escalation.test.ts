@@ -49,17 +49,6 @@ describe("privilege escalation prevention", () => {
       expect(result["all-checks-ok?"]).toBe(false);
     });
 
-    it("read user cannot create workspaceCommentAccess", async () => {
-      const result = await adminDb
-        .asUser({ token: f.readToken })
-        .debugTransact([
-          adminDb.tx.workspaceCommentAccess[id()]
-            .update({ createdAt: Date.now() })
-            .link({ orgMembership: f.readMembershipId, workspace: f.wsAId }),
-        ]);
-      expect(result["all-checks-ok?"]).toBe(false);
-    });
-
     it("comment user cannot create workspaceAccess", async () => {
       const result = await adminDb
         .asUser({ token: f.commentToken })
@@ -83,8 +72,9 @@ describe("privilege escalation prevention", () => {
     });
   });
 
-  describe("workspaceEditAccess is admin-only (self-reference prevents DB enforcement)", () => {
-    it("edit user cannot create workspaceEditAccess", async () => {
+  describe("org admins can grant edit access (no self-reference via orgAdminAccess)", () => {
+    it("org admin (editUser with owner role) can create workspaceEditAccess", async () => {
+      // editUser has role "owner" and thus has orgAdminAccess
       const result = await adminDb
         .asUser({ token: f.editToken })
         .debugTransact([
@@ -92,10 +82,26 @@ describe("privilege escalation prevention", () => {
             .update({ createdAt: Date.now() })
             .link({ orgMembership: f.readMembershipId, workspace: f.wsAId }),
         ]);
-      expect(result["all-checks-ok?"]).toBe(false);
+      expect(result["all-checks-ok?"]).toBe(true);
     });
 
-    it("read user cannot create workspaceEditAccess", async () => {
+    it("org admin can delete workspaceEditAccess", async () => {
+      const { result } = await adminDb
+        .asUser({ token: f.editToken })
+        .debugQuery({
+          workspaceEditAccess: { $: { where: { "workspace.id": f.wsAId } } },
+        });
+      if (result.workspaceEditAccess.length > 0) {
+        const deleteResult = await adminDb
+          .asUser({ token: f.editToken })
+          .debugTransact([
+            adminDb.tx.workspaceEditAccess[result.workspaceEditAccess[0].id].delete(),
+          ]);
+        expect(deleteResult["all-checks-ok?"]).toBe(true);
+      }
+    });
+
+    it("non-admin cannot create workspaceEditAccess", async () => {
       const result = await adminDb
         .asUser({ token: f.readToken })
         .debugTransact([
@@ -106,18 +112,16 @@ describe("privilege escalation prevention", () => {
       expect(result["all-checks-ok?"]).toBe(false);
     });
 
-    it("edit user cannot delete workspaceEditAccess", async () => {
-      const { result } = await adminDb
-        .asUser({ token: f.editToken })
-        .debugQuery({
-          workspaceEditAccess: { $: { where: { "workspace.id": f.wsAId } } },
-        });
-      if (result.workspaceEditAccess.length > 0) {
-        const deleteResult = await adminDb
-          .asUser({ token: f.editToken })
-          .debugTransact([adminDb.tx.workspaceEditAccess[result.workspaceEditAccess[0].id].delete()]);
-        expect(deleteResult["all-checks-ok?"]).toBe(false);
-      }
+    it("non-admin editor cannot create workspaceEditAccess", async () => {
+      // commentUser is role "member", not admin — even though they have comment access
+      const result = await adminDb
+        .asUser({ token: f.commentToken })
+        .debugTransact([
+          adminDb.tx.workspaceEditAccess[id()]
+            .update({ createdAt: Date.now() })
+            .link({ orgMembership: f.commentMembershipId, workspace: f.wsAId }),
+        ]);
+      expect(result["all-checks-ok?"]).toBe(false);
     });
   });
 

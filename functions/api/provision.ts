@@ -49,6 +49,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const orgId = id();
   const wsId = id();
   const membershipId = id();
+  const adminAccessId = id();
   const accessId = id();
   const commentAccessId = id();
   const editAccessId = id();
@@ -61,6 +62,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .link({ organization: orgId }),
     db.tx.orgMemberships[membershipId]
       .update({ role: "owner", createdAt: now })
+      .link({ organization: orgId, user: user.id }),
+    db.tx.orgAdminAccess[adminAccessId]
+      .update({ createdAt: now })
       .link({ organization: orgId, user: user.id }),
     db.tx.workspaceAccess[accessId]
       .update({ createdAt: now })
