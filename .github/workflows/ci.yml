@@ -24,3 +24,9 @@ jobs:
         run: bun run build
         env:
           VITE_INSTANT_APP_ID: ${{ secrets.VITE_INSTANT_APP_ID }}
+
+      - name: Test
+        run: bun run test
+        env:
+          VITE_INSTANT_APP_ID: ${{ secrets.VITE_INSTANT_APP_ID }}
+          INSTANT_ADMIN_TOKEN: ${{ secrets.INSTANT_ADMIN_TOKEN }}
