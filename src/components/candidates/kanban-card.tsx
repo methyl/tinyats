@@ -99,11 +99,28 @@ function ActivityIndicatorSmall({ level }: { level?: Candidate["activityLevel"] 
 export type KanbanCardProps = {
   candidate: Candidate;
   isDragging?: boolean;
+  isProcessing?: boolean;
 };
 
 export const KanbanCard = forwardRef<HTMLDivElement, KanbanCardProps & React.HTMLAttributes<HTMLDivElement>>(
-  function KanbanCard({ candidate, isDragging, style, ...props }, ref) {
+  function KanbanCard({ candidate, isDragging, isProcessing, style, ...props }, ref) {
     const hasCalendar = candidate.hasCalendarEvent;
+
+    if (isProcessing) {
+      return (
+        <div className="bg-white rounded-xl border border-status-processing/30 p-4 mb-2.5 animate-pulse">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="animate-spin h-4 w-4 text-status-processing" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-[13px] font-medium text-status-processing">Analyzing CV...</span>
+          </div>
+          <div className="text-[15px] font-medium text-gray-900 mb-1">{candidate.name}</div>
+          <div className="text-[13px] text-gray-500">{candidate.email}</div>
+        </div>
+      );
+    }
 
     return (
       <div

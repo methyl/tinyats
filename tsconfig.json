@@ -18,5 +18,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", ".vinxi", "storybook-static"]
+  "exclude": ["node_modules", "dist", ".vinxi", "storybook-static", "functions"]
 }

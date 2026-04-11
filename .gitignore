@@ -44,3 +44,7 @@ yarn-error.log*
 next-env.d.ts
 
 .claude/worktrees
+
+# cloudflare
+/.wrangler/
+.dev.vars

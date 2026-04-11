@@ -1,4 +1,5 @@
 export type CandidateStatus =
+  | "Processing"
   | "New"
   | "Reviewed"
   | "1st Call"
@@ -8,6 +9,7 @@ export type CandidateStatus =
   | "Rejected";
 
 const statusStyles: Record<CandidateStatus, { dot: string; bg: string; text: string }> = {
+  Processing: { dot: "bg-status-processing", bg: "bg-status-processing-bg", text: "text-status-processing" },
   New: { dot: "bg-status-new", bg: "bg-status-new-bg", text: "text-status-new" },
   Reviewed: { dot: "bg-status-reviewed", bg: "bg-status-reviewed-bg", text: "text-status-reviewed" },
   "1st Call": { dot: "bg-status-first-call", bg: "bg-status-first-call-bg", text: "text-status-first-call" },

@@ -11,6 +11,7 @@ import { type CandidateStatus } from "../ui/status-badge";
 import { type Candidate } from "./types";
 
 const ALL_STATUSES: CandidateStatus[] = [
+  "Processing",
   "New",
   "Reviewed",
   "1st Call",
@@ -21,6 +22,7 @@ const ALL_STATUSES: CandidateStatus[] = [
 ];
 
 const statusDotColor: Record<CandidateStatus, string> = {
+  Processing: "bg-status-processing",
   New: "bg-status-new",
   Reviewed: "bg-status-reviewed",
   "1st Call": "bg-status-first-call",
@@ -38,6 +40,7 @@ type ColumnMap = Record<CandidateStatus, Candidate[]>;
 
 function groupByStatus(candidates: Candidate[]): ColumnMap {
   const map: ColumnMap = {
+    Processing: [],
     New: [],
     Reviewed: [],
     "1st Call": [],
@@ -119,20 +122,28 @@ export function KanbanBoard({ candidates }: KanbanBoardProps) {
                     ${snapshot.isDraggingOver ? "bg-gray-100" : ""}
                   `}
                 >
-                  {columns[status].map((candidate, index) => (
-                    <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
-                      {(provided, snapshot) => (
-                        <KanbanCard
-                          ref={provided.innerRef}
-                          candidate={candidate}
-                          isDragging={snapshot.isDragging && !snapshot.isDropAnimating}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          style={provided.draggableProps.style}
-                        />
-                      )}
-                    </Draggable>
-                  ))}
+                  {columns[status].map((candidate, index) =>
+                    candidate.status === "Processing" ? (
+                      <KanbanCard
+                        key={candidate.id}
+                        candidate={candidate}
+                        isProcessing
+                      />
+                    ) : (
+                      <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                        {(provided, snapshot) => (
+                          <KanbanCard
+                            ref={provided.innerRef}
+                            candidate={candidate}
+                            isDragging={snapshot.isDragging && !snapshot.isDropAnimating}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            style={provided.draggableProps.style}
+                          />
+                        )}
+                      </Draggable>
+                    )
+                  )}
                   {provided.placeholder}
                 </div>
               )}
