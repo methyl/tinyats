@@ -103,6 +103,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   } catch (err) {
     console.error("parse-cv error:", err);
-    return jsonResponse({ error: "Something went wrong processing the CV. Please try again." }, 500);
+    // TODO: remove debug detail before production
+    const detail = err instanceof Error ? err.message : String(err);
+    return jsonResponse({ error: "Something went wrong processing the CV. Please try again.", debug: detail }, 500);
   }
 };
