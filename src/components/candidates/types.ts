@@ -6,6 +6,13 @@ export type DbCandidate = InstaQLEntity<AppSchema, "candidates">;
 export type DbPosition = InstaQLEntity<AppSchema, "positions">;
 export type DbCandidateWithPosition = InstaQLEntity<AppSchema, "candidates", { position: {} }>;
 
+export type CandidateComment = {
+  id: string;
+  body: string;
+  createdAt: number;
+  author?: { id: string; email?: string };
+};
+
 // View-layer type matching the components' expectations
 export type Candidate = {
   id: string;
@@ -23,10 +30,11 @@ export type Candidate = {
   hasCalendarEvent?: boolean;
   activityLevel?: "hot" | "warm" | "recent" | "normal" | "cold";
   sortOrder: number;
+  comments?: CandidateComment[];
 };
 
 // Convert DB entity to view type
-export function toCandidate(c: DbCandidateWithPosition): Candidate {
+export function toCandidate(c: DbCandidateWithPosition & { comments?: any[] }): Candidate {
   const now = Date.now();
   const diff = now - c.dateAdded;
   const mins = Math.floor(diff / 60000);
@@ -64,5 +72,13 @@ export function toCandidate(c: DbCandidateWithPosition): Candidate {
     hasCalendarEvent: c.hasCalendarEvent ?? false,
     activityLevel: (c.activityLevel as Candidate["activityLevel"]) ?? "normal",
     sortOrder: c.sortOrder,
+    comments: (c.comments ?? []).map((comment: any) => ({
+      id: comment.id,
+      body: comment.body,
+      createdAt: comment.createdAt,
+      author: comment.author
+        ? { id: comment.author.id, email: comment.author.email }
+        : undefined,
+    })),
   };
 }

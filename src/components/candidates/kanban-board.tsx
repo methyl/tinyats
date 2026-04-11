@@ -6,6 +6,7 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 import { db } from "@/lib/db";
+import { useWorkspace } from "@/lib/workspace-context";
 import { KanbanCard } from "./kanban-card";
 import { type CandidateStatus } from "../ui/status-badge";
 import { type Candidate } from "./types";
@@ -68,6 +69,8 @@ function orderBetween(before: number | undefined, after: number | undefined): nu
 }
 
 export function KanbanBoard({ candidates }: KanbanBoardProps) {
+  const { hasEditAccess, hasCommentAccess } = useWorkspace();
+  const { user } = db.useAuth();
   const columns = useMemo(() => groupByStatus(candidates), [candidates]);
 
   const onDragEnd = (result: DropResult) => {
@@ -128,20 +131,33 @@ export function KanbanBoard({ candidates }: KanbanBoardProps) {
                         key={candidate.id}
                         candidate={candidate}
                         isProcessing
+                        hasEditAccess={hasEditAccess}
+                        hasCommentAccess={hasCommentAccess}
+                        currentUserId={user?.id}
                       />
-                    ) : (
+                    ) : hasEditAccess ? (
                       <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
                         {(provided, snapshot) => (
                           <KanbanCard
                             ref={provided.innerRef}
                             candidate={candidate}
                             isDragging={snapshot.isDragging && !snapshot.isDropAnimating}
+                            hasEditAccess={hasEditAccess}
+                            hasCommentAccess={hasCommentAccess}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             style={provided.draggableProps.style}
                           />
                         )}
                       </Draggable>
+                    ) : (
+                      <KanbanCard
+                        key={candidate.id}
+                        candidate={candidate}
+                        hasEditAccess={hasEditAccess}
+                        hasCommentAccess={hasCommentAccess}
+                        currentUserId={user?.id}
+                      />
                     )
                   )}
                   {provided.placeholder}

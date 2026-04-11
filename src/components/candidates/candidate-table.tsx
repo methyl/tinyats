@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { db } from "@/lib/db";
+import { useWorkspace } from "@/lib/workspace-context";
 import { Checkbox } from "../ui/checkbox";
 import { StatusBadge } from "../ui/status-badge";
 import { StarRating } from "../ui/star-rating";
@@ -66,6 +67,7 @@ function PositionTag({ position }: { position: string }) {
 }
 
 export function CandidateTable({ candidates }: CandidateTableProps) {
+  const { hasEditAccess } = useWorkspace();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const allSelected = candidates.length > 0 && selected.size === candidates.length;
@@ -161,9 +163,9 @@ export function CandidateTable({ candidates }: CandidateTableProps) {
                 <StarRating
                   rating={candidate.rating}
                   size="md"
-                  onChange={(rating) => {
+                  onChange={hasEditAccess ? (rating) => {
                     db.transact(db.tx.candidates[candidate.id].update({ rating }));
-                  }}
+                  } : undefined}
                 />
               </td>
 

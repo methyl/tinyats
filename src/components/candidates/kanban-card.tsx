@@ -1,6 +1,8 @@
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
+import { db } from "@/lib/db";
 import { StarRating } from "../ui/star-rating";
 import { NoteIcon, MailIcon, PhoneIcon, GoogleMeetIcon } from "../ui/icons";
+import { CommentSection } from "./comment-section";
 import { type Candidate } from "./types";
 
 function LinkedInSmall() {
@@ -100,11 +102,16 @@ export type KanbanCardProps = {
   candidate: Candidate;
   isDragging?: boolean;
   isProcessing?: boolean;
+  hasEditAccess?: boolean;
+  hasCommentAccess?: boolean;
+  currentUserId?: string;
 };
 
 export const KanbanCard = forwardRef<HTMLDivElement, KanbanCardProps & React.HTMLAttributes<HTMLDivElement>>(
-  function KanbanCard({ candidate, isDragging, isProcessing, style, ...props }, ref) {
+  function KanbanCard({ candidate, isDragging, isProcessing, hasEditAccess = true, hasCommentAccess = true, currentUserId, style, ...props }, ref) {
+    const [showComments, setShowComments] = useState(false);
     const hasCalendar = candidate.hasCalendarEvent;
+    const commentCount = candidate.comments?.length ?? 0;
 
     if (isProcessing) {
       return (
@@ -203,16 +210,43 @@ export const KanbanCard = forwardRef<HTMLDivElement, KanbanCardProps & React.HTM
 
         {/* Stars + actions */}
         <div className="flex items-center justify-between pt-1">
-          <StarRating rating={candidate.rating} size="sm" />
+          <StarRating
+            rating={candidate.rating}
+            size="sm"
+            onChange={hasEditAccess ? (rating) => {
+              db.transact(db.tx.candidates[candidate.id].update({ rating }));
+            } : undefined}
+          />
           <div className="flex items-center gap-1.5">
-            <button className="p-0.5 rounded hover:bg-gray-100 cursor-pointer text-gray-500">
-              <CommentIcon />
-            </button>
-            <button className="p-0.5 rounded hover:bg-gray-100 cursor-pointer text-gray-500">
-              <PlusCircleIcon />
-            </button>
+            {(hasCommentAccess || commentCount > 0) && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }}
+                className={`p-0.5 rounded hover:bg-gray-100 cursor-pointer flex items-center gap-0.5 ${showComments ? "text-blue-500" : "text-gray-500"}`}
+              >
+                <CommentIcon />
+                {commentCount > 0 && (
+                  <span className="text-[11px]">{commentCount}</span>
+                )}
+              </button>
+            )}
+            {hasEditAccess && (
+              <button className="p-0.5 rounded hover:bg-gray-100 cursor-pointer text-gray-500">
+                <PlusCircleIcon />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Comments section */}
+        {showComments && currentUserId && (
+          <CommentSection
+            comments={candidate.comments ?? []}
+            candidateId={candidate.id}
+            currentUserId={currentUserId}
+            hasCommentAccess={hasCommentAccess}
+            hasEditAccess={hasEditAccess}
+          />
+        )}
       </div>
     );
   }

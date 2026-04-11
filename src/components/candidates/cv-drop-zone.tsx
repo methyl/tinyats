@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, type ReactNode, type DragEvent } from "react";
 import { id } from "@instantdb/react";
 import { db } from "@/lib/db";
+import { useWorkspace } from "@/lib/workspace-context";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -18,6 +19,7 @@ type CvDropZoneProps = {
 };
 
 export function CvDropZone({ children }: CvDropZoneProps) {
+  const { withWorkspace } = useWorkspace();
   const [state, setState] = useState<UploadState>({ status: "idle" });
   const dragCounter = useRef(0);
   const errorTimeout = useRef<ReturnType<typeof setTimeout>>();
@@ -70,15 +72,17 @@ export function CvDropZone({ children }: CvDropZoneProps) {
     const placeholderName = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
 
     db.transact(
-      db.tx.candidates[candidateId].update({
-        name: placeholderName,
-        email: "",
-        status: "Processing",
-        rating: 0,
-        dateAdded: now,
-        sortOrder: now,
-        activityLevel: "recent",
-      })
+      withWorkspace(
+        db.tx.candidates[candidateId].update({
+          name: placeholderName,
+          email: "",
+          status: "Processing",
+          rating: 0,
+          dateAdded: now,
+          sortOrder: now,
+          activityLevel: "recent",
+        })
+      )
     );
 
     setState({ status: "idle" });
