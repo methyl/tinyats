@@ -10,6 +10,9 @@ const ALLOWED_TYPES = [
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+// Truncate markdown to fit within model context window
+const MAX_MARKDOWN_CHARS = 12000;
+
 const EXTRACTION_PROMPT = `You are a precise CV/resume data extractor. Parse the following CV content and extract candidate information.
 
 Return ONLY a valid JSON object with exactly these fields:
@@ -71,24 +74,36 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return jsonResponse({ error: "Could not extract text from file." }, 422);
     }
 
+    // Truncate to fit model context
+    const truncated = markdownContent.length > MAX_MARKDOWN_CHARS
+      ? markdownContent.slice(0, MAX_MARKDOWN_CHARS) + "\n[truncated]"
+      : markdownContent;
+
     // Extract structured data with AI
-    const aiResponse = (await context.env.AI.run(
+    const aiResponse = await context.env.AI.run(
       "@cf/google/gemma-4-26b-a4b-it" as BaseAiTextGenerationModels,
       {
         messages: [
-          { role: "user", content: EXTRACTION_PROMPT + markdownContent + "\n---" },
+          { role: "user", content: EXTRACTION_PROMPT + truncated + "\n---" },
         ],
         max_tokens: 512,
         temperature: 0.1,
       }
-    )) as AiTextGenerationOutput;
+    );
 
+    // TODO: remove debug fields before production
+    const raw = JSON.stringify(aiResponse);
     const responseText =
-      "response" in aiResponse ? (aiResponse as { response: string }).response : "";
+      typeof aiResponse === "object" && aiResponse !== null && "response" in aiResponse
+        ? String((aiResponse as Record<string, unknown>).response)
+        : "";
+
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("AI returned no JSON:", responseText);
-      return jsonResponse({ error: "Could not extract candidate data from CV." }, 422);
+      return jsonResponse({
+        error: "Could not extract candidate data from CV.",
+        debug: { markdownLength: markdownContent.length, markdown: truncated, aiResponse: raw },
+      }, 422);
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -102,7 +117,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       note: parsed.note || null,
     });
   } catch (err) {
-    console.error("parse-cv error:", err);
-    return jsonResponse({ error: "Something went wrong processing the CV. Please try again." }, 500);
+    const detail = err instanceof Error ? err.message : String(err);
+    return jsonResponse({ error: "Something went wrong processing the CV. Please try again.", debug: detail }, 500);
   }
 };
