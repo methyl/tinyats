@@ -86,17 +86,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         messages: [
           { role: "user", content: EXTRACTION_PROMPT + truncated + "\n---" },
         ],
-        max_tokens: 512,
+        max_tokens: 16384,
         temperature: 0.1,
       }
     );
 
     // TODO: remove debug fields before production
     const raw = JSON.stringify(aiResponse);
-    const responseText =
-      typeof aiResponse === "object" && aiResponse !== null && "response" in aiResponse
-        ? String((aiResponse as Record<string, unknown>).response)
-        : "";
+
+    // Handle both Cloudflare AI response formats:
+    // 1. Standard: { response: string }
+    // 2. OpenAI-compatible (e.g. gemma-4): { choices: [{ message: { content, reasoning } }] }
+    let responseText = "";
+    if (typeof aiResponse === "object" && aiResponse !== null) {
+      const resp = aiResponse as Record<string, unknown>;
+      if ("response" in resp) {
+        responseText = String(resp.response);
+      } else if ("choices" in resp && Array.isArray(resp.choices)) {
+        const choice = resp.choices[0] as Record<string, unknown> | undefined;
+        const message = choice?.message as Record<string, unknown> | undefined;
+        responseText = String(message?.content ?? message?.reasoning ?? "");
+      }
+    }
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
