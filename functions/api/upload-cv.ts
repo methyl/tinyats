@@ -45,10 +45,8 @@ function jsonResponse(data: unknown, status = 200) {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     if (!context.env.INSTANT_APP_ID || !context.env.INSTANT_ADMIN_TOKEN) {
-      return jsonResponse(
-        { error: "Server misconfiguration: INSTANT_APP_ID and INSTANT_ADMIN_TOKEN must be set" },
-        500
-      );
+      console.error("Missing INSTANT_APP_ID or INSTANT_ADMIN_TOKEN env vars");
+      return jsonResponse({ error: "Something went wrong processing the CV. Please try again." }, 500);
     }
 
     const formData = await context.request.formData();
@@ -114,7 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await adminDb.transact(
         adminDb.tx.candidates[candidateId].update({ status: "New" })
       );
-      return jsonResponse({ candidateId, warning: "Could not extract text from file" });
+      return jsonResponse({ success: true, candidateId, partial: true });
     }
 
     // Extract structured data with AI
@@ -149,10 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await adminDb.transact(
         adminDb.tx.candidates[candidateId].update({ status: "New" })
       );
-      return jsonResponse({
-        candidateId,
-        warning: "Could not parse candidate data from CV",
-      });
+      return jsonResponse({ success: true, candidateId, partial: true });
     }
 
     // Update candidate with extracted data and move to "New"
@@ -170,7 +165,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return jsonResponse({ success: true, candidateId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return jsonResponse({ error: message }, 500);
+    console.error("upload-cv error:", err);
+    return jsonResponse({ error: "Something went wrong processing the CV. Please try again." }, 500);
   }
 };
