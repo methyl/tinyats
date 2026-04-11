@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, type ReactNode, type DragEvent } from "react";
+import { id } from "@instantdb/react";
+import { db } from "@/lib/db";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -9,25 +11,7 @@ const ALLOWED_TYPES = [
 type UploadState =
   | { status: "idle" }
   | { status: "dragging" }
-  | { status: "uploading"; fileName: string }
   | { status: "error"; message: string };
-
-async function uploadCv(file: File): Promise<{ candidateId: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch("/api/upload-cv", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Upload failed");
-  }
-
-  return response.json();
-}
 
 type CvDropZoneProps = {
   children: ReactNode;
@@ -80,17 +64,33 @@ export function CvDropZone({ children }: CvDropZoneProps) {
       return;
     }
 
-    setState({ status: "uploading", fileName: file.name });
+    // Create "Processing" candidate immediately — shows up in kanban right away
+    const candidateId = id();
+    const now = Date.now();
+    const placeholderName = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
 
-    try {
-      await uploadCv(file);
-      // Candidate appears automatically via InstantDB subscription
-      setState({ status: "idle" });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Upload failed";
-      setState({ status: "error", message });
-      errorTimeout.current = setTimeout(() => setState({ status: "idle" }), 4000);
-    }
+    db.transact(
+      db.tx.candidates[candidateId].update({
+        name: placeholderName,
+        email: "",
+        status: "Processing",
+        rating: 0,
+        dateAdded: now,
+        sortOrder: now,
+        activityLevel: "recent",
+      })
+    );
+
+    setState({ status: "idle" });
+
+    // Fire to the worker — completes server-side even if the tab is closed
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("candidateId", candidateId);
+
+    fetch("/api/upload-cv", { method: "POST", body: formData }).catch(() => {
+      // Network error — best we can do client-side
+    });
   }, []);
 
   const showOverlay = state.status === "dragging";
@@ -128,19 +128,6 @@ export function CvDropZone({ children }: CvDropZoneProps) {
               <p className="text-sm text-gray-500 mt-1">PDF or DOCX, up to 10MB</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Upload toast */}
-      {state.status === "uploading" && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl bg-white border border-gray-200 shadow-sm">
-          <svg className="animate-spin h-4 w-4 text-status-processing" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <span className="text-sm text-gray-700">
-            Uploading <span className="font-medium">{state.fileName}</span>...
-          </span>
         </div>
       )}
 
