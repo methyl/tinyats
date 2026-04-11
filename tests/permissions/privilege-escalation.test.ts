@@ -13,7 +13,31 @@ afterAll(async () => {
 });
 
 describe("privilege escalation prevention", () => {
-  describe("access tier creation is blocked client-side", () => {
+  describe("editors can grant read and comment access", () => {
+    it("edit user can create workspaceAccess for another member", async () => {
+      const result = await adminDb
+        .asUser({ token: f.editToken })
+        .debugTransact([
+          adminDb.tx.workspaceAccess[id()]
+            .update({ createdAt: Date.now() })
+            .link({ orgMembership: f.outsideMembershipId, workspace: f.wsAId }),
+        ]);
+      expect(result["all-checks-ok?"]).toBe(true);
+    });
+
+    it("edit user can create workspaceCommentAccess for another member", async () => {
+      const result = await adminDb
+        .asUser({ token: f.editToken })
+        .debugTransact([
+          adminDb.tx.workspaceCommentAccess[id()]
+            .update({ createdAt: Date.now() })
+            .link({ orgMembership: f.readMembershipId, workspace: f.wsAId }),
+        ]);
+      expect(result["all-checks-ok?"]).toBe(true);
+    });
+  });
+
+  describe("non-editors cannot grant access", () => {
     it("read user cannot create workspaceAccess", async () => {
       const result = await adminDb
         .asUser({ token: f.readToken })
@@ -36,35 +60,13 @@ describe("privilege escalation prevention", () => {
       expect(result["all-checks-ok?"]).toBe(false);
     });
 
-    it("read user cannot create workspaceEditAccess", async () => {
-      const result = await adminDb
-        .asUser({ token: f.readToken })
-        .debugTransact([
-          adminDb.tx.workspaceEditAccess[id()]
-            .update({ createdAt: Date.now() })
-            .link({ orgMembership: f.readMembershipId, workspace: f.wsAId }),
-        ]);
-      expect(result["all-checks-ok?"]).toBe(false);
-    });
-
-    it("comment user cannot create workspaceEditAccess", async () => {
+    it("comment user cannot create workspaceAccess", async () => {
       const result = await adminDb
         .asUser({ token: f.commentToken })
         .debugTransact([
-          adminDb.tx.workspaceEditAccess[id()]
+          adminDb.tx.workspaceAccess[id()]
             .update({ createdAt: Date.now() })
             .link({ orgMembership: f.commentMembershipId, workspace: f.wsAId }),
-        ]);
-      expect(result["all-checks-ok?"]).toBe(false);
-    });
-
-    it("edit user cannot create workspaceEditAccess", async () => {
-      const result = await adminDb
-        .asUser({ token: f.editToken })
-        .debugTransact([
-          adminDb.tx.workspaceEditAccess[id()]
-            .update({ createdAt: Date.now() })
-            .link({ orgMembership: f.editMembershipId, workspace: f.wsAId }),
         ]);
       expect(result["all-checks-ok?"]).toBe(false);
     });
@@ -81,19 +83,39 @@ describe("privilege escalation prevention", () => {
     });
   });
 
-  describe("access tier mutation is blocked client-side", () => {
-    it("edit user cannot delete workspaceAccess", async () => {
-      // Even editors can't remove access tiers — only admin SDK
+  describe("workspaceEditAccess is admin-only (self-reference prevents DB enforcement)", () => {
+    it("edit user cannot create workspaceEditAccess", async () => {
+      const result = await adminDb
+        .asUser({ token: f.editToken })
+        .debugTransact([
+          adminDb.tx.workspaceEditAccess[id()]
+            .update({ createdAt: Date.now() })
+            .link({ orgMembership: f.readMembershipId, workspace: f.wsAId }),
+        ]);
+      expect(result["all-checks-ok?"]).toBe(false);
+    });
+
+    it("read user cannot create workspaceEditAccess", async () => {
+      const result = await adminDb
+        .asUser({ token: f.readToken })
+        .debugTransact([
+          adminDb.tx.workspaceEditAccess[id()]
+            .update({ createdAt: Date.now() })
+            .link({ orgMembership: f.readMembershipId, workspace: f.wsAId }),
+        ]);
+      expect(result["all-checks-ok?"]).toBe(false);
+    });
+
+    it("edit user cannot delete workspaceEditAccess", async () => {
       const { result } = await adminDb
         .asUser({ token: f.editToken })
         .debugQuery({
-          workspaceAccess: { $: { where: { "workspace.id": f.wsAId } } },
+          workspaceEditAccess: { $: { where: { "workspace.id": f.wsAId } } },
         });
-      if (result.workspaceAccess.length > 0) {
-        const accessId = result.workspaceAccess[0].id;
+      if (result.workspaceEditAccess.length > 0) {
         const deleteResult = await adminDb
           .asUser({ token: f.editToken })
-          .debugTransact([adminDb.tx.workspaceAccess[accessId].delete()]);
+          .debugTransact([adminDb.tx.workspaceEditAccess[result.workspaceEditAccess[0].id].delete()]);
         expect(deleteResult["all-checks-ok?"]).toBe(false);
       }
     });
