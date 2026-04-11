@@ -1,30 +1,9 @@
 import { useState } from "react";
+import { id } from "@instantdb/react";
 import { db } from "@/lib/db";
 import { useWorkspace } from "@/lib/workspace-context";
 
 type AccessLevel = "read" | "comment" | "edit";
-
-function getAuthToken(): string | undefined {
-  return (db as any)._core?._reactor?.currentUser?.refreshToken;
-}
-
-async function callGrantAccess(body: Record<string, unknown>) {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  const res = await fetch("/api/grant-access", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Request failed");
-  }
-  return res.json();
-}
 
 function LevelBadge({ level }: { level: AccessLevel }) {
   const colors = {
@@ -37,6 +16,34 @@ function LevelBadge({ level }: { level: AccessLevel }) {
       {level}
     </span>
   );
+}
+
+function buildAccessTiers(
+  level: AccessLevel,
+  membershipId: string,
+  workspaceId: string,
+) {
+  const now = Date.now();
+  const txs: any[] = [
+    db.tx.workspaceAccess[id()]
+      .update({ createdAt: now })
+      .link({ orgMembership: membershipId, workspace: workspaceId }),
+  ];
+  if (level === "comment" || level === "edit") {
+    txs.push(
+      db.tx.workspaceCommentAccess[id()]
+        .update({ createdAt: now })
+        .link({ orgMembership: membershipId, workspace: workspaceId }),
+    );
+  }
+  if (level === "edit") {
+    txs.push(
+      db.tx.workspaceEditAccess[id()]
+        .update({ createdAt: now })
+        .link({ orgMembership: membershipId, workspace: workspaceId }),
+    );
+  }
+  return txs;
 }
 
 export function OrgSettings() {
@@ -77,13 +84,30 @@ export function OrgSettings() {
     setError("");
 
     try {
-      await callGrantAccess({
-        action: "grant",
-        orgId: currentOrg.id,
-        workspaceId: currentWorkspace.id,
-        targetEmail: inviteEmail.trim().toLowerCase(),
-        level: inviteLevel,
-      });
+      // Create membership + access tiers in one transaction
+      const membershipId = id();
+      const txs: any[] = [
+        db.tx.orgMemberships[membershipId]
+          .update({ role: "member", createdAt: Date.now() })
+          .link({ organization: currentOrg.id }),
+        ...buildAccessTiers(inviteLevel, membershipId, currentWorkspace.id),
+      ];
+      // Create invite record for tracking
+      txs.push(
+        db.tx.invites[id()]
+          .update({
+            email: inviteEmail.trim().toLowerCase(),
+            level: inviteLevel,
+            status: "pending",
+            createdAt: Date.now(),
+          })
+          .link({
+            organization: currentOrg.id,
+            workspace: currentWorkspace.id,
+            inviter: user!.id,
+          }),
+      );
+      await db.transact(txs);
       setInviteEmail("");
     } catch (err: any) {
       setError(err.message);
@@ -92,30 +116,48 @@ export function OrgSettings() {
     }
   };
 
-  const handleChangeLevel = async (membershipId: string, level: AccessLevel) => {
+  const handleChangeLevel = async (membership: any, newLevel: AccessLevel) => {
     if (!currentWorkspace) return;
+    setError("");
     try {
-      await callGrantAccess({
-        action: "change",
-        orgId: currentOrg!.id,
-        workspaceId: currentWorkspace.id,
-        targetMembershipId: membershipId,
-        level,
-      });
+      // Delete existing access tiers for this workspace
+      const deletes = [
+        ...(membership.accessGrants ?? [])
+          .filter((g: any) => g.workspace?.id === currentWorkspace.id)
+          .map((g: any) => db.tx.workspaceAccess[g.id].delete()),
+        ...(membership.commentGrants ?? [])
+          .filter((g: any) => g.workspace?.id === currentWorkspace.id)
+          .map((g: any) => db.tx.workspaceCommentAccess[g.id].delete()),
+        ...(membership.editGrants ?? [])
+          .filter((g: any) => g.workspace?.id === currentWorkspace.id)
+          .map((g: any) => db.tx.workspaceEditAccess[g.id].delete()),
+      ];
+      // Create new tiers
+      const creates = buildAccessTiers(newLevel, membership.id, currentWorkspace.id);
+      await db.transact([...deletes, ...creates]);
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const handleRevoke = async (membershipId: string) => {
+  const handleRevoke = async (membership: any) => {
     if (!currentWorkspace) return;
+    setError("");
     try {
-      await callGrantAccess({
-        action: "revoke",
-        orgId: currentOrg!.id,
-        workspaceId: currentWorkspace.id,
-        targetMembershipId: membershipId,
-      });
+      const deletes = [
+        ...(membership.accessGrants ?? [])
+          .filter((g: any) => g.workspace?.id === currentWorkspace.id)
+          .map((g: any) => db.tx.workspaceAccess[g.id].delete()),
+        ...(membership.commentGrants ?? [])
+          .filter((g: any) => g.workspace?.id === currentWorkspace.id)
+          .map((g: any) => db.tx.workspaceCommentAccess[g.id].delete()),
+        ...(membership.editGrants ?? [])
+          .filter((g: any) => g.workspace?.id === currentWorkspace.id)
+          .map((g: any) => db.tx.workspaceEditAccess[g.id].delete()),
+      ];
+      if (deletes.length > 0) {
+        await db.transact(deletes);
+      }
     } catch (err: any) {
       setError(err.message);
     }
@@ -124,12 +166,9 @@ export function OrgSettings() {
   function getMemberLevel(membership: any): AccessLevel | null {
     const wsId = currentWorkspace?.id;
     if (!wsId) return null;
-    const hasEdit = (membership.editGrants ?? []).some((g: any) => g.workspace?.id === wsId);
-    if (hasEdit) return "edit";
-    const hasComment = (membership.commentGrants ?? []).some((g: any) => g.workspace?.id === wsId);
-    if (hasComment) return "comment";
-    const hasAccess = (membership.accessGrants ?? []).some((g: any) => g.workspace?.id === wsId);
-    if (hasAccess) return "read";
+    if ((membership.editGrants ?? []).some((g: any) => g.workspace?.id === wsId)) return "edit";
+    if ((membership.commentGrants ?? []).some((g: any) => g.workspace?.id === wsId)) return "comment";
+    if ((membership.accessGrants ?? []).some((g: any) => g.workspace?.id === wsId)) return "read";
     return null;
   }
 
@@ -208,7 +247,7 @@ export function OrgSettings() {
                   {canManage && !isSelf && level ? (
                     <select
                       value={level}
-                      onChange={(e) => handleChangeLevel(membership.id, e.target.value as AccessLevel)}
+                      onChange={(e) => handleChangeLevel(membership, e.target.value as AccessLevel)}
                       className="px-2 py-0.5 rounded border border-gray-200 text-[12px] bg-white cursor-pointer"
                     >
                       <option value="read">Read</option>
@@ -222,7 +261,7 @@ export function OrgSettings() {
                   )}
                   {canManage && !isSelf && (
                     <button
-                      onClick={() => handleRevoke(membership.id)}
+                      onClick={() => handleRevoke(membership)}
                       className="text-[12px] text-gray-400 hover:text-red-500 cursor-pointer"
                     >
                       Revoke
