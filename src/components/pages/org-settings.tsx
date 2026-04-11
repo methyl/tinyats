@@ -84,17 +84,10 @@ export function OrgSettings() {
     setError("");
 
     try {
-      // Create membership + access tiers in one transaction
-      const membershipId = id();
-      const txs: any[] = [
-        db.tx.orgMemberships[membershipId]
-          .update({ role: "member", createdAt: Date.now() })
-          .link({ organization: currentOrg.id }),
-        ...buildAccessTiers(inviteLevel, membershipId, currentWorkspace.id),
-      ];
-      // Create invite record for tracking
-      txs.push(
-        db.tx.invites[id()]
+      // Create invite record — membership + access tiers are created on accept
+      const inviteId = id();
+      await db.transact(
+        db.tx.invites[inviteId]
           .update({
             email: inviteEmail.trim().toLowerCase(),
             level: inviteLevel,
@@ -107,7 +100,20 @@ export function OrgSettings() {
             inviter: user!.id,
           }),
       );
-      await db.transact(txs);
+
+      // Send invite email (fire-and-forget)
+      const token = (user as any).refresh_token;
+      if (token) {
+        fetch("/api/send-invite", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ inviteId }),
+        }).catch(() => {});
+      }
+
       setInviteEmail("");
     } catch (err: any) {
       setError(err.message);
