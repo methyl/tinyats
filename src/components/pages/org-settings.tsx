@@ -50,6 +50,35 @@ function CopyButton({ inviteId }: { inviteId: string }) {
   );
 }
 
+function ResendButton({ inviteId, userToken }: { inviteId: string; userToken?: string }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+
+  return (
+    <button
+      disabled={state !== "idle" || !userToken}
+      onClick={() => {
+        setState("sending");
+        fetch("/api/send-invite", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ inviteId }),
+        })
+          .then(() => {
+            setState("sent");
+            setTimeout(() => setState("idle"), 2000);
+          })
+          .catch(() => setState("idle"));
+      }}
+      className="text-[12px] text-gray-500 hover:text-gray-700 disabled:text-gray-300 cursor-pointer whitespace-nowrap"
+    >
+      {state === "sending" ? "..." : state === "sent" ? "Sent!" : "Resend"}
+    </button>
+  );
+}
+
 function buildAccessTiers(
   level: AccessLevel,
   membershipId: string,
@@ -301,6 +330,7 @@ export function OrgSettings() {
                   <LevelBadge level={invite.level as AccessLevel} />
                   <StatusBadge status={invite.status} />
                   <CopyButton inviteId={invite.id} />
+                  <ResendButton inviteId={invite.id} userToken={(user as any)?.refresh_token} />
                   {canManage && (
                     <button
                       onClick={() => handleCancelInvite(invite.id)}
