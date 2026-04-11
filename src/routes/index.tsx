@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef } from "react";
-import { id } from "@instantdb/react";
 import { db } from "@/lib/db";
 import { WorkspaceProvider, useWorkspace } from "@/lib/workspace-context";
 import { CurrentRecruitments } from "@/components/pages/current-recruitments";
@@ -138,32 +137,18 @@ function ProvisioningGate() {
   if (needsProvisioning && !provisioned.current && user) {
     provisioned.current = true;
 
-    const orgId = id();
-    const wsId = id();
-    const membershipId = id();
-    const accessId = id();
-    const commentId = id();
-    const editId = id();
-    const now = Date.now();
-
-    db.transact([
-      db.tx.organizations[orgId].update({ name: "My Organization", createdAt: now }),
-      db.tx.workspaces[wsId]
-        .update({ name: "Default", createdAt: now })
-        .link({ organization: orgId }),
-      db.tx.orgMemberships[membershipId]
-        .update({ role: "owner", createdAt: now })
-        .link({ organization: orgId, user: user.id }),
-      db.tx.workspaceAccess[accessId]
-        .update({ createdAt: now })
-        .link({ orgMembership: membershipId, workspace: wsId }),
-      db.tx.workspaceCommentAccess[commentId]
-        .update({ createdAt: now })
-        .link({ orgMembership: membershipId, workspace: wsId }),
-      db.tx.workspaceEditAccess[editId]
-        .update({ createdAt: now })
-        .link({ orgMembership: membershipId, workspace: wsId }),
-    ]);
+    // Access tiers can only be created server-side (admin SDK) to prevent
+    // privilege escalation. The user's refresh_token authenticates the request.
+    const token = (user as any).refresh_token;
+    if (token) {
+      fetch("/api/provision", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }).catch(() => {});
+    }
 
     return (
       <div className="min-h-screen bg-gray-800 flex items-center justify-center">
