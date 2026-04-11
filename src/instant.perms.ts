@@ -1,6 +1,12 @@
 import type { InstantRules } from "@instantdb/react";
 
 const rules = {
+  $users: {
+    allow: {
+      // Org members can see each other's profiles
+      view: "auth.id == data.id || auth.id in data.ref('orgMemberships.organization.orgMemberships.user.id')",
+    },
+  },
   organizations: {
     allow: {
       view: "auth.id in data.ref('orgMemberships.user.id')",

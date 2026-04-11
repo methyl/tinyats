@@ -5,6 +5,14 @@ import { useWorkspace } from "@/lib/workspace-context";
 
 type AccessLevel = "read" | "comment" | "edit";
 
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 3.5h9M5.5 3.5V2.5a1 1 0 011-1h1a1 1 0 011 1v1M10 3.5l-.4 7a1 1 0 01-1 .9H5.4a1 1 0 01-1-.9L4 3.5" />
+    </svg>
+  );
+}
+
 function LevelBadge({ level }: { level: AccessLevel }) {
   const colors = {
     read: "bg-gray-100 text-gray-600",
@@ -14,19 +22,6 @@ function LevelBadge({ level }: { level: AccessLevel }) {
   return (
     <span className={`px-2 py-0.5 rounded text-[12px] font-medium ${colors[level]}`}>
       {level}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    pending: "bg-yellow-50 text-yellow-700",
-    sent: "bg-blue-50 text-blue-600",
-    accepted: "bg-green-50 text-green-700",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-[12px] font-medium ${colors[status] ?? "bg-gray-100 text-gray-600"}`}>
-      {status}
     </span>
   );
 }
@@ -121,7 +116,6 @@ export function OrgSettings() {
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState("");
 
-  // Get all memberships for current org
   const { data: orgData } = db.useQuery(
     currentOrg
       ? {
@@ -136,7 +130,6 @@ export function OrgSettings() {
       : { orgMemberships: { $: { where: { id: "__none__" } } } }
   );
 
-  // Get pending/sent invites for current workspace
   const { data: inviteData } = db.useQuery(
     currentWorkspace
       ? {
@@ -149,9 +142,15 @@ export function OrgSettings() {
   );
 
   const members = (orgData as any)?.orgMemberships ?? [];
-  const invites = ((inviteData as any)?.invites ?? [])
+  const allInvites = ((inviteData as any)?.invites ?? [])
     .filter((inv: any) => inv.status !== "accepted")
     .sort((a: any, b: any) => b.createdAt - a.createdAt);
+
+  // Only show invites to admins or the person who sent them
+  const canManage = isOrgAdmin || hasEditAccess;
+  const invites = allInvites.filter(
+    (inv: any) => canManage || inv.inviter?.id === user?.id
+  );
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +175,6 @@ export function OrgSettings() {
           }),
       );
 
-      // Send invite email (fire-and-forget)
       const token = (user as any).refresh_token;
       if (token) {
         fetch("/api/send-invite", {
@@ -219,11 +217,13 @@ export function OrgSettings() {
     }
   };
 
-  const handleRevoke = async (membership: any) => {
+  // Remove member entirely — deletes membership and all access tiers
+  const handleRemoveMember = async (membership: any) => {
     if (!currentWorkspace) return;
     setError("");
     try {
       const deletes = [
+        // Delete all access tiers for this workspace
         ...(membership.accessGrants ?? [])
           .filter((g: any) => g.workspace?.id === currentWorkspace.id)
           .map((g: any) => db.tx.workspaceAccess[g.id].delete()),
@@ -233,16 +233,16 @@ export function OrgSettings() {
         ...(membership.editGrants ?? [])
           .filter((g: any) => g.workspace?.id === currentWorkspace.id)
           .map((g: any) => db.tx.workspaceEditAccess[g.id].delete()),
+        // Delete the membership itself
+        db.tx.orgMemberships[membership.id].delete(),
       ];
-      if (deletes.length > 0) {
-        await db.transact(deletes);
-      }
+      await db.transact(deletes);
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const handleCancelInvite = async (inviteId: string) => {
+  const handleDeleteInvite = async (inviteId: string) => {
     try {
       await db.transact(db.tx.invites[inviteId].delete());
     } catch (err: any) {
@@ -260,8 +260,6 @@ export function OrgSettings() {
   }
 
   if (!currentOrg) return null;
-
-  const canManage = isOrgAdmin || hasEditAccess;
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-6">
@@ -323,22 +321,19 @@ export function OrgSettings() {
                 <div>
                   <p className="text-sm font-medium text-gray-900">{invite.email}</p>
                   <p className="text-[12px] text-gray-400">
-                    {invite.inviter?.email ? `Invited by ${invite.inviter.email.split("@")[0]}` : ""}
+                    {invite.level} access
+                    {invite.inviter?.email ? ` \u00b7 by ${invite.inviter.email.split("@")[0]}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <LevelBadge level={invite.level as AccessLevel} />
-                  <StatusBadge status={invite.status} />
                   <CopyButton inviteId={invite.id} />
                   <ResendButton inviteId={invite.id} userToken={(user as any)?.refresh_token} />
-                  {canManage && (
-                    <button
-                      onClick={() => handleCancelInvite(invite.id)}
-                      className="text-[12px] text-gray-400 hover:text-red-500 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleDeleteInvite(invite.id)}
+                    className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 cursor-pointer"
+                  >
+                    <TrashIcon />
+                  </button>
                 </div>
               </div>
             ))}
@@ -362,7 +357,7 @@ export function OrgSettings() {
               <div key={membership.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {memberUser?.email ?? "Unknown"}
+                    {memberUser?.email ?? memberUser?.id?.slice(0, 8) ?? "..."}
                     {isSelf && <span className="text-gray-400 ml-1">(you)</span>}
                   </p>
                   <p className="text-[12px] text-gray-400">{membership.role}</p>
@@ -385,10 +380,10 @@ export function OrgSettings() {
                   )}
                   {canManage && !isSelf && (
                     <button
-                      onClick={() => handleRevoke(membership)}
-                      className="text-[12px] text-gray-400 hover:text-red-500 cursor-pointer"
+                      onClick={() => handleRemoveMember(membership)}
+                      className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 cursor-pointer"
                     >
-                      Revoke
+                      <TrashIcon />
                     </button>
                   )}
                 </div>
