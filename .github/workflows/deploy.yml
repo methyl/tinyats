@@ -29,8 +29,8 @@ jobs:
       - name: Push schema and permissions to InstantDB
         run: bunx instant-cli push schema --yes && bunx instant-cli push perms --yes
         env:
+          INSTANT_CLI_AUTH_TOKEN: ${{ secrets.INSTANT_CLI_AUTH_TOKEN }}
           INSTANT_APP_ID: ${{ secrets.VITE_INSTANT_APP_ID }}
-          INSTANT_ADMIN_TOKEN: ${{ secrets.INSTANT_ADMIN_TOKEN }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
