@@ -18,6 +18,38 @@ function LevelBadge({ level }: { level: AccessLevel }) {
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    pending: "bg-yellow-50 text-yellow-700",
+    sent: "bg-blue-50 text-blue-600",
+    accepted: "bg-green-50 text-green-700",
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded text-[12px] font-medium ${colors[status] ?? "bg-gray-100 text-gray-600"}`}>
+      {status}
+    </span>
+  );
+}
+
+function CopyButton({ inviteId }: { inviteId: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/invite/${inviteId}`;
+
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(url).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      }}
+      className="text-[12px] text-blue-600 hover:text-blue-700 cursor-pointer whitespace-nowrap"
+    >
+      {copied ? "Copied!" : "Copy link"}
+    </button>
+  );
+}
+
 function buildAccessTiers(
   level: AccessLevel,
   membershipId: string,
@@ -75,7 +107,22 @@ export function OrgSettings() {
       : { orgMemberships: { $: { where: { id: "__none__" } } } }
   );
 
+  // Get pending/sent invites for current workspace
+  const { data: inviteData } = db.useQuery(
+    currentWorkspace
+      ? {
+          invites: {
+            $: { where: { "workspace.id": currentWorkspace.id } },
+            inviter: {},
+          },
+        }
+      : { invites: { $: { where: { id: "__none__" } } } }
+  );
+
   const members = (orgData as any)?.orgMemberships ?? [];
+  const invites = ((inviteData as any)?.invites ?? [])
+    .filter((inv: any) => inv.status !== "accepted")
+    .sort((a: any, b: any) => b.createdAt - a.createdAt);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +131,6 @@ export function OrgSettings() {
     setError("");
 
     try {
-      // Create invite record — membership + access tiers are created on accept
       const inviteId = id();
       await db.transact(
         db.tx.invites[inviteId]
@@ -126,7 +172,6 @@ export function OrgSettings() {
     if (!currentWorkspace) return;
     setError("");
     try {
-      // Delete existing access tiers for this workspace
       const deletes = [
         ...(membership.accessGrants ?? [])
           .filter((g: any) => g.workspace?.id === currentWorkspace.id)
@@ -138,7 +183,6 @@ export function OrgSettings() {
           .filter((g: any) => g.workspace?.id === currentWorkspace.id)
           .map((g: any) => db.tx.workspaceEditAccess[g.id].delete()),
       ];
-      // Create new tiers
       const creates = buildAccessTiers(newLevel, membership.id, currentWorkspace.id);
       await db.transact([...deletes, ...creates]);
     } catch (err: any) {
@@ -164,6 +208,14 @@ export function OrgSettings() {
       if (deletes.length > 0) {
         await db.transact(deletes);
       }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string) => {
+    try {
+      await db.transact(db.tx.invites[inviteId].delete());
     } catch (err: any) {
       setError(err.message);
     }
@@ -226,6 +278,42 @@ export function OrgSettings() {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Pending invites */}
+      {invites.length > 0 && (
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-sm font-medium text-gray-900">
+              Pending invites ({invites.length})
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {invites.map((invite: any) => (
+              <div key={invite.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{invite.email}</p>
+                  <p className="text-[12px] text-gray-400">
+                    {invite.inviter?.email ? `Invited by ${invite.inviter.email.split("@")[0]}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <LevelBadge level={invite.level as AccessLevel} />
+                  <StatusBadge status={invite.status} />
+                  <CopyButton inviteId={invite.id} />
+                  {canManage && (
+                    <button
+                      onClick={() => handleCancelInvite(invite.id)}
+                      className="text-[12px] text-gray-400 hover:text-red-500 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Members list */}
