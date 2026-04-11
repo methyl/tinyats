@@ -6,6 +6,7 @@ import { StatsBar } from "../layout/stats-bar";
 import { Toolbar, defaultFilters, type ActiveFilters } from "../layout/toolbar";
 import { CandidateTable } from "../candidates/candidate-table";
 import { KanbanBoard } from "../candidates/kanban-board";
+import { CvDropZone } from "../candidates/cv-drop-zone";
 import { Button } from "../ui/button";
 import { AddPersonIcon, AddIcon, HelpIcon } from "../ui/icons";
 
@@ -59,6 +60,7 @@ export function CurrentRecruitments() {
   const callTodayCount = allCandidates.filter((c) => c.hasCalendarEvent).length;
 
   return (
+    <CvDropZone>
     <div className="min-h-screen bg-gray-800">
       <TopNav />
       <div className="m-2 bg-gray-50 rounded-2xl min-h-[calc(100vh-72px)]">
@@ -102,5 +104,6 @@ export function CurrentRecruitments() {
         )}
       </div>
     </div>
+    </CvDropZone>
   );
 }
