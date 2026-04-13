@@ -9,17 +9,17 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants = {
   primary:
-    "bg-gray-800 text-white hover:bg-gray-900 border border-gray-800 shadow-xs",
+    "bg-gray-900 text-white hover:bg-gray-800 border border-gray-800 shadow-sm",
   secondary:
-    "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 shadow-xs",
+    "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 shadow-sm",
   outline:
-    "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 shadow-xs",
+    "bg-white text-gray-900 hover:bg-gray-50 border border-gray-300/80 shadow-sm",
   ghost:
     "bg-transparent text-gray-600 hover:bg-gray-100 border border-transparent",
 };
 
 const sizes = {
-  sm: "h-8 px-3 text-[13px] gap-1.5",
+  sm: "h-8 px-3 text-[12px] gap-1.5 tracking-[-0.12px]",
   md: "h-10 px-4 text-sm gap-2",
 };
 

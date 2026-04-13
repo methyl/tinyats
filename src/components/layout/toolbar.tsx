@@ -1,8 +1,8 @@
 import { ViewToggle } from "../ui/view-toggle";
 import { FilterChip } from "../ui/filter-chip";
 import { Button } from "../ui/button";
-import { FilterIcon, ChevronDownIcon, AddIcon } from "../ui/icons";
-import { useState, useRef, useEffect } from "react";
+import { FilterIcon, ChevronDownIcon } from "../ui/icons";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 
 export type ActiveFilters = {
   new: boolean;
@@ -30,6 +30,50 @@ export type ToolbarProps = {
   positions?: string[];
 };
 
+/**
+ * The "chip-in-button" control used for Position / Show dropdowns.
+ * Mirrors Pencil frames `BFpFX` + `XKpOg` (outer white pill, inner gray chip with value + chevron).
+ */
+function ChipSelect({
+  label,
+  value,
+  children,
+  onClick,
+  innerRef,
+}: {
+  label: string;
+  value: ReactNode;
+  children?: ReactNode;
+  onClick?: () => void;
+  innerRef?: React.RefObject<HTMLButtonElement | null>;
+}) {
+  return (
+    <button
+      ref={innerRef}
+      onClick={onClick}
+      className="
+        inline-flex items-center h-8 rounded-lg bg-white border border-gray-300/80 shadow-sm
+        pl-3 pr-[3px] gap-2 cursor-pointer hover:bg-gray-50 transition-colors
+      "
+    >
+      <span className="text-[12px] font-medium text-gray-900 tracking-[-0.12px]">
+        {label}
+      </span>
+      <span
+        className="
+          inline-flex items-center h-[26px] rounded-md bg-gray-100 px-3 gap-1.5
+        "
+      >
+        <span className="text-[12px] font-medium text-gray-500 tracking-[-0.12px]">
+          {value}
+        </span>
+        <ChevronDownIcon className="text-gray-600" />
+        {children}
+      </span>
+    </button>
+  );
+}
+
 function PositionDropdown({
   positions,
   selected,
@@ -52,28 +96,34 @@ function PositionDropdown({
 
   return (
     <div ref={ref} className="relative">
-      <Button variant="outline" size="sm" onClick={() => setOpen(!open)}>
-        Position
-        <span className="text-gray-500 ml-0.5">{selected ?? "All"}</span>
-        <ChevronDownIcon className="text-gray-400" />
-      </Button>
+      <ChipSelect
+        label="Position"
+        value={selected ?? "All"}
+        onClick={() => setOpen(!open)}
+      />
       {open && (
         <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-sm z-20 min-w-[160px] py-1">
           <button
-            className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer ${
+            className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-gray-50 cursor-pointer ${
               selected === null ? "font-medium text-gray-900" : "text-gray-600"
             }`}
-            onClick={() => { onSelect(null); setOpen(false); }}
+            onClick={() => {
+              onSelect(null);
+              setOpen(false);
+            }}
           >
             All
           </button>
           {positions.map((pos) => (
             <button
               key={pos}
-              className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer ${
+              className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-gray-50 cursor-pointer ${
                 selected === pos ? "font-medium text-gray-900" : "text-gray-600"
               }`}
-              onClick={() => { onSelect(pos); setOpen(false); }}
+              onClick={() => {
+                onSelect(pos);
+                setOpen(false);
+              }}
             >
               {pos}
             </button>
@@ -81,6 +131,21 @@ function PositionDropdown({
         </div>
       )}
     </div>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="#D9AC00"
+      stroke="#D9AC00"
+      strokeWidth="0.5"
+    >
+      <path d="M8 1.5L9.79 5.12L13.76 5.7L10.88 8.5L11.58 12.45L8 10.56L4.42 12.45L5.12 8.5L2.24 5.7L6.21 5.12L8 1.5Z" />
+    </svg>
   );
 }
 
@@ -98,10 +163,10 @@ export function Toolbar({
   };
 
   return (
-    <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-200">
+    <div className="flex items-center gap-2 px-6 py-2 border-y border-gray-200/80 bg-gray-50">
       <ViewToggle view={view} onChange={onViewChange} />
 
-      <Button variant="outline" size="sm" icon={<FilterIcon />}>
+      <Button variant="outline" size="sm" icon={<FilterIcon className="text-gray-600" />} className="text-gray-600">
         Filters
       </Button>
 
@@ -110,8 +175,6 @@ export function Toolbar({
         selected={filters.position}
         onSelect={(pos) => onFiltersChange({ ...filters, position: pos })}
       />
-
-      <div className="w-px h-5 bg-gray-200 mx-1" />
 
       <FilterChip active={filters.new} onClick={() => toggle("new")}>
         New
@@ -128,22 +191,12 @@ export function Toolbar({
       <FilterChip
         active={filters.stars}
         onClick={() => toggle("stars")}
-        icon={
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="#D9AC00" stroke="#D9AC00" strokeWidth="0.5">
-            <path d="M8 1.5L9.79 5.12L13.76 5.7L10.88 8.5L11.58 12.45L8 10.56L4.42 12.45L5.12 8.5L2.24 5.7L6.21 5.12L8 1.5Z" />
-          </svg>
-        }
+        icon={<StarIcon />}
       >
         Above 4 stars
       </FilterChip>
 
-      {view === "grid" && (
-        <Button variant="outline" size="sm">
-          Show
-          <span className="text-gray-500 ml-0.5">All</span>
-          <ChevronDownIcon className="text-gray-400" />
-        </Button>
-      )}
+      <ChipSelect label="Show" value="All" />
 
       <FilterChip
         active={filters.updated}
@@ -154,14 +207,11 @@ export function Toolbar({
         Updated
       </FilterChip>
 
-      {view === "grid" && (
-        <>
-          <div className="flex-1" />
-          <Button variant="outline" size="sm" icon={<AddIcon className="text-gray-500" />}>
-            Add Status
-          </Button>
-        </>
-      )}
+      <div className="flex-1" />
+
+      <Button variant="outline" size="sm">
+        Add Status
+      </Button>
     </div>
   );
 }

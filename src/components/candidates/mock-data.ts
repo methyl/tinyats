@@ -136,6 +136,7 @@ export const mockKanbanCandidates: Candidate[] = withSortOrder([
     rating: 0,
     github: "#",
     resume: "#",
+    phone: "+48 000 000 000",
     email: "maila@mail.com",
     dateAdded: "2 min ago",
     activityLevel: "recent",

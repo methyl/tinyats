@@ -5,31 +5,39 @@ export type ViewToggleProps = {
 
 function GridIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-      <rect x="1" y="1" width="6" height="6" rx="1.5" />
-      <rect x="9" y="1" width="6" height="6" rx="1.5" />
-      <rect x="1" y="9" width="6" height="6" rx="1.5" />
-      <rect x="9" y="9" width="6" height="6" rx="1.5" />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+      <rect x="0.5" y="0.5" width="4.5" height="4.5" rx="1" />
+      <rect x="7" y="0.5" width="4.5" height="4.5" rx="1" />
+      <rect x="0.5" y="7" width="4.5" height="4.5" rx="1" />
+      <rect x="7" y="7" width="4.5" height="4.5" rx="1" />
     </svg>
   );
 }
 
 function ListIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M2 3h12M2 8h12M2 13h12" />
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
+      <path d="M1.5 2.5h9M1.5 6h9M1.5 9.5h9" />
     </svg>
   );
 }
 
 export function ViewToggle({ view, onChange }: ViewToggleProps) {
   return (
-    <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden shadow-xs">
+    <div className="inline-flex items-center h-8 rounded-lg border border-gray-300/80 bg-white shadow-sm px-[3px] gap-1">
       <button
         onClick={() => onChange?.("grid")}
         className={`
-          w-9 h-8 flex items-center justify-center transition-colors cursor-pointer
-          ${view === "grid" ? "bg-gray-100 text-gray-800" : "bg-white text-gray-400 hover:text-gray-600"}
+          flex items-center justify-center h-[24px] w-[30px] rounded-md transition-colors cursor-pointer
+          ${view === "grid" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:text-gray-800"}
         `}
         aria-label="Grid view"
       >
@@ -38,9 +46,8 @@ export function ViewToggle({ view, onChange }: ViewToggleProps) {
       <button
         onClick={() => onChange?.("list")}
         className={`
-          w-9 h-8 flex items-center justify-center transition-colors cursor-pointer
-          border-l border-gray-200
-          ${view === "list" ? "bg-gray-100 text-gray-800" : "bg-white text-gray-400 hover:text-gray-600"}
+          flex items-center justify-center h-[24px] w-[30px] rounded-md transition-colors cursor-pointer
+          ${view === "list" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:text-gray-800"}
         `}
         aria-label="List view"
       >

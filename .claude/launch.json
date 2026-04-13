@@ -9,8 +9,8 @@
     },
     {
       "name": "storybook",
-      "runtimeExecutable": "bunx",
-      "runtimeArgs": ["storybook", "dev", "-p", "6007", "--no-open"],
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "storybook", "--", "-p", "6007", "--no-open"],
       "port": 6007
     }
   ]
