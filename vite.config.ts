@@ -6,6 +6,9 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [TanStackRouterVite(), react(), tailwindcss()],
+  define: {
+    __COMMIT_SHA__: JSON.stringify(process.env.CF_PAGES_COMMIT_SHA || "dev"),
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
