@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:permissions": "vitest run tests/permissions",
-    "test:react": "vitest run tests/react"
+    "test:react": "vitest run tests/react",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
