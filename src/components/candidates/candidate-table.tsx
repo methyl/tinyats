@@ -10,6 +10,7 @@ import { type Candidate } from "./types";
 
 export type CandidateTableProps = {
   candidates: Candidate[];
+  onSelect?: (id: string) => void;
 };
 
 function ActivityIndicator({ level }: { level?: Candidate["activityLevel"] }) {
@@ -66,7 +67,7 @@ function PositionTag({ position }: { position: string }) {
   );
 }
 
-export function CandidateTable({ candidates }: CandidateTableProps) {
+export function CandidateTable({ candidates, onSelect }: CandidateTableProps) {
   const { hasEditAccess } = useWorkspace();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -118,8 +119,16 @@ export function CandidateTable({ candidates }: CandidateTableProps) {
           {candidates.map((candidate) => (
             <tr
               key={candidate.id}
+              onClick={(e) => {
+                // Ignore clicks on interactive controls inside the row
+                const target = e.target as HTMLElement;
+                if (target.closest("button, a, input, label, [role='checkbox']")) {
+                  return;
+                }
+                onSelect?.(candidate.id);
+              }}
               className={`
-                border-b border-gray-200 hover:bg-gray-50 transition-colors
+                border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer
                 ${selected.has(candidate.id) ? "bg-blue-50/50" : ""}
               `}
             >

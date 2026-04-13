@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { db } from "@/lib/db";
 import { useWorkspace, useWorkspaceQuery } from "@/lib/workspace-context";
 import { toCandidate, type Candidate } from "../candidates/types";
 import { TopNav } from "../layout/top-nav";
@@ -6,6 +7,7 @@ import { StatsBar } from "../layout/stats-bar";
 import { Toolbar, defaultFilters, type ActiveFilters } from "../layout/toolbar";
 import { CandidateTable } from "../candidates/candidate-table";
 import { KanbanBoard } from "../candidates/kanban-board";
+import { CandidateDrawer } from "../candidates/candidate-drawer";
 import { CvDropZone } from "../candidates/cv-drop-zone";
 import { Button } from "../ui/button";
 import { AddPersonIcon, AddIcon, HelpIcon } from "../ui/icons";
@@ -32,7 +34,9 @@ function applyFilters(candidates: Candidate[], filters: ActiveFilters): Candidat
 export function CurrentRecruitments() {
   const [view, setView] = useState<"grid" | "list">("list");
   const [filters, setFilters] = useState<ActiveFilters>(defaultFilters);
-  const { hasEditAccess } = useWorkspace();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { hasEditAccess, hasCommentAccess } = useWorkspace();
+  const { user } = db.useAuth();
 
   const { isLoading, error, data } = useWorkspaceQuery({
     candidates: { position: {}, comments: { author: {} } },
@@ -102,11 +106,23 @@ export function CurrentRecruitments() {
 
         {/* Content */}
         {view === "list" ? (
-          <CandidateTable candidates={candidates} />
+          <CandidateTable candidates={candidates} onSelect={setSelectedId} />
         ) : (
-          <KanbanBoard candidates={candidates} />
+          <KanbanBoard candidates={candidates} onSelect={setSelectedId} />
         )}
       </div>
+
+      {/* Candidate details drawer */}
+      <CandidateDrawer
+        candidate={candidates.find((c: Candidate) => c.id === selectedId) ?? null}
+        candidates={candidates}
+        onClose={() => setSelectedId(null)}
+        onSelect={setSelectedId}
+        positions={positions}
+        hasEditAccess={hasEditAccess}
+        hasCommentAccess={hasCommentAccess}
+        currentUserId={user?.id}
+      />
     </div>
   );
 

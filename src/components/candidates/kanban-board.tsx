@@ -35,6 +35,7 @@ const statusDotColor: Record<CandidateStatus, string> = {
 
 export type KanbanBoardProps = {
   candidates: Candidate[];
+  onSelect?: (id: string) => void;
 };
 
 type ColumnMap = Record<CandidateStatus, Candidate[]>;
@@ -68,7 +69,7 @@ function orderBetween(before: number | undefined, after: number | undefined): nu
   return (before + after) / 2;
 }
 
-export function KanbanBoard({ candidates }: KanbanBoardProps) {
+export function KanbanBoard({ candidates, onSelect }: KanbanBoardProps) {
   const { hasEditAccess, hasCommentAccess } = useWorkspace();
   const { user } = db.useAuth();
   const columns = useMemo(() => groupByStatus(candidates), [candidates]);
@@ -134,6 +135,7 @@ export function KanbanBoard({ candidates }: KanbanBoardProps) {
                         hasEditAccess={hasEditAccess}
                         hasCommentAccess={hasCommentAccess}
                         currentUserId={user?.id}
+                        onSelect={onSelect}
                       />
                     ) : hasEditAccess ? (
                       <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
@@ -144,6 +146,8 @@ export function KanbanBoard({ candidates }: KanbanBoardProps) {
                             isDragging={snapshot.isDragging && !snapshot.isDropAnimating}
                             hasEditAccess={hasEditAccess}
                             hasCommentAccess={hasCommentAccess}
+                            currentUserId={user?.id}
+                            onSelect={onSelect}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             style={provided.draggableProps.style}
@@ -157,6 +161,7 @@ export function KanbanBoard({ candidates }: KanbanBoardProps) {
                         hasEditAccess={hasEditAccess}
                         hasCommentAccess={hasCommentAccess}
                         currentUserId={user?.id}
+                        onSelect={onSelect}
                       />
                     )
                   )}

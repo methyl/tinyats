@@ -107,7 +107,10 @@ function CtaPill({
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
       className="
         flex items-center justify-center w-8 h-8 rounded-lg bg-white
         border border-gray-300/80 shadow-sm hover:bg-gray-50 transition-colors cursor-pointer
@@ -164,11 +167,12 @@ export type KanbanCardProps = {
   hasEditAccess?: boolean;
   hasCommentAccess?: boolean;
   currentUserId?: string;
+  onSelect?: (id: string) => void;
 };
 
 export const KanbanCard = forwardRef<
   HTMLDivElement,
-  KanbanCardProps & React.HTMLAttributes<HTMLDivElement>
+  KanbanCardProps & Omit<React.HTMLAttributes<HTMLDivElement>, "onSelect">
 >(function KanbanCard(
   {
     candidate,
@@ -177,7 +181,9 @@ export const KanbanCard = forwardRef<
     hasEditAccess = true,
     hasCommentAccess = true,
     currentUserId,
+    onSelect,
     style,
+    onClick,
     ...props
   },
   ref,
@@ -250,6 +256,12 @@ export const KanbanCard = forwardRef<
         flex flex-col gap-2
         ${isDragging ? "shadow-sm opacity-95" : "shadow-sm hover:shadow-md transition-shadow"}
       `}
+      onClick={(e) => {
+        onClick?.(e);
+        if (e.defaultPrevented) return;
+        if (isDragging) return;
+        onSelect?.(candidate.id);
+      }}
       {...props}
     >
       {/* Position */}
